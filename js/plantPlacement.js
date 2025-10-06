@@ -596,13 +596,19 @@ class PlantPlacement {
         
         console.log(`🔄 Starting move for ${plantData.itemId} from [${row}, ${col}]`);
         
+        // Stop earning animation for this item
+        if (plantData.earningInterval) {
+            clearInterval(plantData.earningInterval);
+            plantData.earningInterval = null;
+        }
+        
         // Get the item's image path from ITEMS_CONFIG
         const itemConfig = ITEMS_CONFIG.find(item => item.id === plantData.itemId);
         if (itemConfig) {
             this.plantImage = itemConfig.image;
         }
         
-        // Store the item being moved
+        // Store the item being moved (including interval state)
         this.movingItem = {
             itemId: plantData.itemId,
             itemName: plantData.itemName,
@@ -610,7 +616,8 @@ class PlantPlacement {
             originalRow: row,
             originalCol: col,
             rotation: plantData.rotation || 0,
-            element: itemElement
+            element: itemElement,
+            earningInterval: null // Will be restarted after placement
         };
         
         // Remove item from grid visually (but keep in database until new position confirmed)
