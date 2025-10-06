@@ -35,6 +35,11 @@
                     
                     <!-- BUD particle effects will spawn here -->
                     <div class="particle-container" id="particleContainer"></div>
+                    
+                    <!-- Customize Room Button (bottom left) -->
+                    <button class="room-customize-btn" id="customizeBtn" title="Customize Room">
+                        CUSTOMIZE
+                    </button>
                 </div>
             </div>
 
@@ -161,6 +166,21 @@
         </footer>
         </div>
 
+    <!-- Customization Modal -->
+    <div class="customize-modal" id="customizeModal" style="display: none;">
+        <div class="customize-modal-content">
+            <button class="customize-close-btn" id="customizeCloseBtn">✕</button>
+            <h2 class="customize-title">CUSTOMIZE ROOM</h2>
+            
+            <div class="customize-category">
+                <h3>Background Theme</h3>
+                <div class="background-options" id="backgroundOptions">
+                    <!-- Background options will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -178,6 +198,7 @@
     <script src="js/plantPlacement.js"></script>
     <script src="js/inventorySystem.js"></script>
     <script src="js/shopSystem.js"></script>
+    <script src="js/roomCustomizer.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/main.js"></script>
 </body>

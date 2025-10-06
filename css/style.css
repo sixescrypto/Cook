@@ -2112,3 +2112,194 @@ body::after {
 .error-modal-content {
     padding: 10px 0;
 }
+
+/* Room Customize Button (bottom left corner) */
+.room-customize-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    padding: 12px 15px;
+    border: 3px solid #00ff41;
+    background: #1a1f28;
+    color: #00ff41;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    pointer-events: all;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    letter-spacing: 1px;
+}
+
+.room-customize-btn:hover {
+    background: #00ff41;
+    color: #1a1f28;
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+    transform: translateY(-2px);
+}
+
+.room-customize-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Customization Modal */
+.customize-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.customize-modal-content {
+    background: #1a1f28;
+    border: 3px solid #00ff41;
+    padding: 30px;
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 0 40px rgba(0, 255, 65, 0.3);
+    position: relative;
+}
+
+.customize-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-family: 'Press Start 2P', cursive;
+    background: #1a1f28;
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.customize-close-btn:hover {
+    background: #00ff41;
+    color: #1a1f28;
+    transform: scale(1.1);
+}
+
+.customize-title {
+    font-family: 'Press Start 2P', cursive;
+    color: #00ff41;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.customize-category {
+    margin-bottom: 30px;
+}
+
+.customize-category h3 {
+    font-family: 'Press Start 2P', cursive;
+    color: #00ff41;
+    font-size: 12px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.background-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.background-option {
+    position: relative;
+    border: 3px solid #2a2f38;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.background-option:hover {
+    border-color: #00ff41;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+.background-option.active {
+    border-color: #00ff41;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+}
+
+.background-option img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.background-option-name {
+    font-family: 'Press Start 2P', cursive;
+    text-align: center;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #00ff41;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.background-option.active .background-option-name {
+    background: rgba(0, 255, 65, 0.2);
+    color: #00ff41;
+}
+
+.background-option.active::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #00ff41;
+    color: #1a1f28;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Custom scrollbar for modal */
+.customize-modal-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.customize-modal-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.customize-modal-content::-webkit-scrollbar-thumb {
+    background: #00ff41;
+}
+
+.customize-modal-content::-webkit-scrollbar-thumb:hover {
+    background: #00cc33;
+}

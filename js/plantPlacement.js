@@ -355,6 +355,24 @@ class PlantPlacement {
             this.hidePreview();
             this.enablePlantInteraction();
             console.log('✅ Move complete - placement mode disabled');
+            
+            // Restore radio state if moving a radio (will always be OFF state)
+            if (this.movingItem && this.movingItem.radioState && itemId === 'radio') {
+                const newKey = `${row}-${col}`;
+                const oldKey = `${this.movingItem.originalRow}-${this.movingItem.originalCol}`;
+                
+                console.log('📻 Restoring radio state at new position (OFF):', { oldKey, newKey });
+                
+                // Move the radio state to the new position (already in OFF state)
+                this.radioStates[newKey] = this.movingItem.radioState;
+                
+                // Update the element reference to the new plant element
+                this.radioStates[newKey].element = plant;
+                console.log('✅ Radio state restored at new position (radio is OFF)');
+                
+                // Delete old key to prevent stale data
+                delete this.radioStates[oldKey];
+            }
         }
         
         // If still in placement mode, disable interaction on this new plant
@@ -364,7 +382,13 @@ class PlantPlacement {
         }
         
         // Start earning animation for this plant
-        this.startEarningAnimation(this.plants[this.plants.length - 1]);
+        const plantToAnimate = this.plants[this.plants.length - 1];
+        console.log('🎬 Starting animation for:', { 
+            itemId: plantToAnimate.itemId, 
+            rewardRate: plantToAnimate.rewardRate,
+            element: !!plantToAnimate.element 
+        });
+        this.startEarningAnimation(plantToAnimate);
         
         // Add click handler to show info panel
         plant.addEventListener('click', (e) => {
@@ -375,6 +399,13 @@ class PlantPlacement {
     
     // Get item name from inventory system
     getItemName(itemId) {
+        // Look up in ITEMS_CONFIG first (always available)
+        const itemConfig = ITEMS_CONFIG.find(item => item.id === itemId);
+        if (itemConfig) {
+            return itemConfig.name;
+        }
+        
+        // Fallback to inventory system
         if (this.inventorySystem) {
             const item = this.inventorySystem.items.find(i => i.id === itemId);
             return item ? item.name : 'Unknown';
@@ -384,6 +415,13 @@ class PlantPlacement {
     
     // Get item description from inventory system
     getItemDescription(itemId) {
+        // Look up in ITEMS_CONFIG first (always available)
+        const itemConfig = ITEMS_CONFIG.find(item => item.id === itemId);
+        if (itemConfig) {
+            return itemConfig.description;
+        }
+        
+        // Fallback to inventory system
         if (this.inventorySystem) {
             const item = this.inventorySystem.items.find(i => i.id === itemId);
             return item ? item.description : '';
@@ -393,6 +431,13 @@ class PlantPlacement {
     
     // Get item reward rate from inventory system
     getItemRewardRate(itemId) {
+        // Look up in ITEMS_CONFIG first (always available)
+        const itemConfig = ITEMS_CONFIG.find(item => item.id === itemId);
+        if (itemConfig) {
+            return itemConfig.rewardRate;
+        }
+        
+        // Fallback to inventory system
         if (this.inventorySystem) {
             const item = this.inventorySystem.items.find(i => i.id === itemId);
             return item ? item.rewardRate : '0 BUD/min';
@@ -608,7 +653,36 @@ class PlantPlacement {
             this.plantImage = itemConfig.image;
         }
         
-        // Store the item being moved (including interval state)
+        // Capture radio state if moving a radio - always turn it off when moving
+        let radioState = null;
+        if (plantData.itemId === 'radio') {
+            const oldKey = `${row}-${col}`;
+            radioState = this.radioStates[oldKey];
+            if (radioState) {
+                console.log('📻 Radio found - turning it off before move');
+                
+                // Stop any playing audio
+                if (radioState.audioData && radioState.audioData.audio) {
+                    radioState.audioData.audio.pause();
+                    radioState.audioData.audio.currentTime = 0;
+                    console.log('⏸️ Stopped audio');
+                }
+                
+                // Remove playing animation from old element
+                if (radioState.element) {
+                    radioState.element.classList.remove('radio-playing');
+                }
+                
+                // Reset radio state to OFF
+                radioState.isOn = false;
+                radioState.currentTrack = null;
+                radioState.audioData = null;
+                
+                console.log('✅ Radio turned off for move');
+            }
+        }
+        
+        // Store the item being moved (including interval state and radio state)
         this.movingItem = {
             itemId: plantData.itemId,
             itemName: plantData.itemName,
@@ -617,7 +691,8 @@ class PlantPlacement {
             originalCol: col,
             rotation: plantData.rotation || 0,
             element: itemElement,
-            earningInterval: null // Will be restarted after placement
+            earningInterval: null, // Will be restarted after placement
+            radioState: radioState // Preserve radio state for restoration
         };
         
         // Remove item from grid visually (but keep in database until new position confirmed)
@@ -1117,11 +1192,15 @@ class PlantPlacement {
     
     // Start earning animation for a plant
     startEarningAnimation(plantData) {
+        console.log('🎬 startEarningAnimation called for:', plantData.itemId, 'rewardRate:', plantData.rewardRate);
+        
         // Skip animation for items that don't generate BUD (like decorative items)
         if (!plantData.rewardRate || plantData.rewardRate === '0 BUD/min') {
             console.log(`⏭️ Skipping earning animation for ${plantData.itemName} (no BUD generation)`);
             return;
         }
+        
+        console.log('✅ Setting up earning animation interval');
         
         // Create earning animation every 4 seconds
         plantData.earningInterval = setInterval(() => {
