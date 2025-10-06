@@ -13,6 +13,35 @@ class TokenSystem {
         this.updateTokenPrice();
         this.startPriceTracking();
         this.simulateGlobalActivity();
+        this.fetchPlayerCount(); // Fetch real player count on init
+    }
+    
+    // Fetch real player count from database
+    async fetchPlayerCount() {
+        if (!window.supabaseClient || !window.supabaseClient.isInitialized) {
+            console.warn('⚠️ Supabase not initialized, cannot fetch player count');
+            return;
+        }
+        
+        try {
+            const count = await window.supabaseClient.getPlayerCount();
+            console.log(`📊 Player count from database: ${count}`);
+            
+            if (count > 0) {
+                this.activePlayers = count;
+                console.log(`✅ Active players updated: ${this.activePlayers}`);
+                
+                // Trigger UI update if uiSystem is available
+                if (window.uiSystem && window.uiSystem.updateTokenInfo) {
+                    window.uiSystem.updateTokenInfo();
+                    console.log('🔄 UI updated with new player count');
+                }
+            } else {
+                console.warn('⚠️ Player count is 0 or null, keeping current value:', this.activePlayers);
+            }
+        } catch (error) {
+            console.error('❌ Failed to fetch player count:', error);
+        }
     }
     
     // Start price tracking loop
@@ -68,10 +97,8 @@ class TokenSystem {
             
             this.globalDistributed += globalGeneration;
             
-            // Simulate player count fluctuation
-            this.activePlayers = Math.max(1, 
-                Math.floor(CONFIG.ESTIMATED_USERS * (0.5 + Math.random() * 0.5))
-            );
+            // Fetch updated player count from database instead of simulating
+            this.fetchPlayerCount();
         }, CONFIG.UPDATE_INTERVALS.PRICE_UPDATE);
     }
     

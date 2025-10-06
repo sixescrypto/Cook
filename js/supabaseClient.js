@@ -339,6 +339,28 @@ class SupabaseClient {
             return false;
         }
     }
+
+    // Get total registered player count
+    async getPlayerCount() {
+        try {
+            console.log('🔍 Fetching player count from database...');
+            
+            const { count, error } = await this.supabase
+                .from('players')
+                .select('*', { count: 'exact', head: true });
+
+            if (error) {
+                console.error('❌ Supabase query error:', error);
+                throw error;
+            }
+
+            console.log('📊 Total registered players from query:', count);
+            return count || 0;
+        } catch (error) {
+            console.error('❌ Failed to get player count:', error);
+            return 0;
+        }
+    }
 }
 
 // Create global instance
