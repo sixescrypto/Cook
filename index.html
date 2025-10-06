@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUD Garden - Weed Plant Growing Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Buy Button -->
+    <a href="#" class="buy-button" id="buyButton">BUY $BUD</a>
+    
+    <div class="game-container">
+        <!-- Header with title -->
+        <header class="game-header">
+            <div class="title-section">
+                <h1 class="game-title">DOPE</h1>
+                <div class="subtitle">GROW • EARN • PROFIT</div>
+            </div>
+        </header>
+
+        <!-- Main game area -->
+        <main class="game-main">
+            <!-- Isometric Room View -->
+            <div class="room-container">
+                <div class="room-view">
+                    <!-- Background room image -->
+                    <img src="assets/room-background.png" alt="Room" class="room-background" id="roomBackground">
+                    
+                    <!-- Grid overlay for tile interaction -->
+                    <div class="grid-overlay" id="gridOverlay"></div>
+                    
+                    <!-- BUD particle effects will spawn here -->
+                    <div class="particle-container" id="particleContainer"></div>
+                </div>
+            </div>
+
+            <!-- Control panel -->
+            <div class="control-panel">
+                <!-- BUD Generation Stats -->
+                <div class="bud-generation-stats">
+                    <h3>BUD GENERATION</h3>
+                    
+                    <!-- Total BUD Counter -->
+                    <div class="total-bud-display">
+                        <div class="bud-counter" id="budCounter">0.00</div>
+                        <div class="bud-value" id="budValue">$0.00</div>
+                    </div>
+                    
+                    <div class="gen-stat-list">
+                        <div class="gen-stat-item">
+                            <span class="gen-stat-label">Per Day:</span>
+                            <span class="gen-stat-value" id="perDay">0.00 BUD/day</span>
+                        </div>
+                        <div class="gen-stat-item">
+                            <span class="gen-stat-label">Session Total:</span>
+                            <span class="gen-stat-value" id="sessionTotal">0.00 BUD</span>
+                        </div>
+                        <div class="gen-stat-item harvest-ready">
+                            <button class="action-btn harvest-btn" id="harvestBtn" title="Harvest BUD" disabled>
+                                HARVEST
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Section -->
+                <div class="inventory-section">
+                    <h3>INVENTORY</h3>
+                    <div class="inventory-grid" id="inventoryGrid">
+                        <!-- Inventory items will be added dynamically -->
+                        <!-- Empty slots shown by default -->
+                        <div class="inventory-slot empty"></div>
+                        <div class="inventory-slot empty"></div>
+                        <div class="inventory-slot empty"></div>
+                        <div class="inventory-slot empty"></div>
+                    </div>
+                    
+                    <!-- Equip Button (hidden by default) -->
+                    <div class="equip-panel" id="equipPanel" style="display: none;">
+                        <div class="equip-item-details">
+                            <img src="" alt="" class="equip-item-preview" id="equipItemPreview">
+                            <div class="equip-item-name" id="equipItemName">Item Name</div>
+                        </div>
+                        <button class="action-btn equip-btn" id="equipBtn">
+                            EQUIP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BUD generation rate (removed old section) -->
+            </div>
+        </main>
+
+        <!-- Token info section -->
+        <section class="token-info">
+            <div class="token-stats">
+                <!-- Tab Headers -->
+                <div class="tab-headers">
+                    <button class="tab-btn active" data-tab="stats">TOKEN STATS</button>
+                    <button class="tab-btn" data-tab="calculator">CALCULATOR</button>
+                </div>
+                
+                <!-- Token Stats Tab Content -->
+                <div class="tab-content active" id="statsTab">
+                    <div class="token-details">
+                        <div class="token-stat">
+                            <span class="token-label">Total Supply:</span>
+                            <span class="token-value">1,000,000,000 BUD</span>
+                        </div>
+                        <div class="token-stat">
+                            <span class="token-label">Distributed:</span>
+                            <span class="token-value" id="distributedTokens">0 BUD</span>
+                        </div>
+                        <div class="token-stat">
+                            <span class="token-label">Current Price:</span>
+                            <span class="token-value" id="tokenPrice">$0.0001</span>
+                        </div>
+                        <div class="token-stat">
+                            <span class="token-label">Active Players:</span>
+                            <span class="token-value" id="activePlayers">1</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calculator Tab Content -->
+                <div class="tab-content" id="calculatorTab">
+                    <div class="calculator-form">
+                        <div class="calc-field">
+                            <label class="calc-label">Market Cap:</label>
+                            <input type="text" class="calc-input" id="calcMarketCap" placeholder="0">
+                        </div>
+                        <div class="calc-field">
+                            <label class="calc-label">BUD Amount:</label>
+                            <input type="text" class="calc-input" id="calcBudAmount" placeholder="0">
+                        </div>
+                        <div class="calc-result">
+                            <span class="result-label">Estimated Rewards:</span>
+                            <span class="result-value" id="calcResult">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="leaderboard">
+                <h3>SHOP</h3>
+                <div class="shop-items" id="shopItems">
+                    <!-- Shop items will be added dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="game-footer">
+            <div class="footer-text">
+                BUD GARDEN v1.0 | CONNECTED TO PUMPFUN
+            </div>
+        </footer>
+        </div>
+
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- JavaScript files -->
+    <script src="js/config.js"></script>
+    <script src="js/config/supabase.config.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/sounds/soundEffects.js"></script>
+    <script src="js/itemsConfig.js"></script>
+    <script src="js/gameState.js"></script>
+    <script src="js/plantSystem.js"></script>
+    <script src="js/tokenSystem.js"></script>
+    <script src="js/gridSystem.js"></script>
+    <script src="js/gridAligner.js"></script>
+    <script src="js/plantPlacement.js"></script>
+    <script src="js/inventorySystem.js"></script>
+    <script src="js/shopSystem.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
