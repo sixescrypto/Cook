@@ -616,10 +616,11 @@ class PlantPlacement {
         // Remove item from grid visually (but keep in database until new position confirmed)
         itemElement.remove();
         
-        // Mark original tile as unoccupied
+        // Mark original tile as unoccupied and remove CSS class
         const tile = this.gridSystem.getTile(row, col);
         if (tile) {
             tile.occupied = false;
+            tile.element.classList.remove('occupied');
         }
         
         // Remove from plants array temporarily
