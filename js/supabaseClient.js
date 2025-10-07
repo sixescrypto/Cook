@@ -54,6 +54,8 @@ class SupabaseClient {
     // Create new player in database
     async createPlayer(walletAddress) {
         try {
+            console.log('🔄 Attempting to create player:', walletAddress);
+            
             const { data, error } = await this.supabase
                 .from('players')
                 .insert([
@@ -67,7 +69,15 @@ class SupabaseClient {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Supabase INSERT error:', error.message);
+                console.error('📋 Error code:', error.code);
+                console.error('📝 Error details:', error.details);
+                console.error('💡 Error hint:', error.hint);
+                console.error('🔢 Status:', error.status);
+                console.error('🔍 Full error object:', JSON.stringify(error, null, 2));
+                throw error;
+            }
 
             this.currentUser = data;
             console.log('✅ New player created:', walletAddress);
@@ -227,15 +237,26 @@ class SupabaseClient {
         if (!this.currentUser) return [];
 
         try {
+            // JOIN with items table to get full item details including image_url
             const { data, error } = await this.supabase
-                .from('inventory')
-                .select('*')
+                .from('player_inventory')
+                .select(`
+                    item_id,
+                    count,
+                    items (
+                        name,
+                        description,
+                        image_url,
+                        generation_rate,
+                        price
+                    )
+                `)
                 .eq('player_id', this.currentUser.id);
 
             if (error) throw error;
 
-            console.log('📦 Loaded inventory from server:', data.length, 'items');
-            return data;
+            console.log('📦 Loaded inventory from server:', data ? data.length : 0, 'items');
+            return data || [];
         } catch (error) {
             console.error('❌ Failed to get inventory:', error);
             return [];
@@ -250,7 +271,7 @@ class SupabaseClient {
             if (newCount <= 0) {
                 // If count is 0 or negative, delete the inventory row
                 const { error } = await this.supabase
-                    .from('inventory')
+                    .from('player_inventory')
                     .delete()
                     .eq('player_id', this.currentUser.id)
                     .eq('item_id', itemId);
@@ -260,7 +281,7 @@ class SupabaseClient {
             } else {
                 // Update the count
                 const { error } = await this.supabase
-                    .from('inventory')
+                    .from('player_inventory')
                     .update({ count: newCount })
                     .eq('player_id', this.currentUser.id)
                     .eq('item_id', itemId);
@@ -276,17 +297,19 @@ class SupabaseClient {
         }
     }
 
-    // Purchase item from shop
-    async purchaseItem(itemId, price) {
+    // Purchase item from shop (SERVER-SIDE PRICE VALIDATION)
+    // Price is NOT sent from client - server looks it up from database
+    async purchaseItem(itemId) {
         if (!this.currentUser) return false;
 
         try {
             // Call server function that validates purchase and updates BUD
+            // Server fetches price from database (NO client-side price manipulation)
             const { data, error } = await this.supabase
                 .rpc('purchase_item', {
                     p_player_id: this.currentUser.id,
-                    p_item_id: itemId,
-                    p_item_price: price
+                    p_item_id: itemId
+                    // ❌ NO p_item_price parameter - server validates price
                 });
 
             if (error) throw error;
@@ -327,13 +350,13 @@ class SupabaseClient {
         try {
             const { data, error } = await this.supabase
                 .rpc('harvest_bud', {
-                    player_id: this.currentUser.id
+                    p_player_id: this.currentUser.id
                 });
 
             if (error) throw error;
 
             console.log('✅ BUD harvested:', data);
-            return true;
+            return data;
         } catch (error) {
             console.error('❌ Failed to harvest BUD:', error);
             return false;

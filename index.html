@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BUD Garden - Weed Plant Growing Game</title>
+    <title>GROW - Weed Plant Growing Game</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
         <!-- Header with title -->
         <header class="game-header">
             <div class="title-section">
-                <h1 class="game-title">DOPE</h1>
+                <img src="assets/grow-logo.png" alt="GROW" class="game-title-logo">
                 <div class="subtitle">GROW • EARN • PROFIT</div>
             </div>
         </header>
@@ -86,7 +86,7 @@
                     
                     <!-- Equip Button (hidden by default) -->
                     <div class="equip-panel" id="equipPanel" style="display: none;">
-                        <div class="equip-item-details">
+                        <button class="equip-close-btn" id="equipCloseBtn" aria-label="Close">&times;</button>                        <div class="equip-item-details">
                             <img src="" alt="" class="equip-item-preview" id="equipItemPreview">
                             <div class="equip-item-name" id="equipItemName">Item Name</div>
                         </div>
@@ -164,7 +164,7 @@
                 BUD GARDEN v1.0 | CONNECTED TO PUMPFUN
             </div>
         </footer>
-        </div>
+    </div>
 
     <!-- Customization Modal -->
     <div class="customize-modal" id="customizeModal" style="display: none;">

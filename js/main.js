@@ -1,6 +1,166 @@
 // Main Game Initialization
+console.log('🔵 main.js loaded - before DOMContentLoaded');
+
+// Function to calculate and claim offline BUD earnings
+async function claimOfflineBUD() {
+    if (!window.currentPlayer || !window.supabaseClient.supabase) {
+        console.log('⏭️ Skipping offline BUD claim (no server connection)');
+        return;
+    }
+    
+    try {
+        console.log('💰 Calculating offline BUD earnings...');
+        
+        // Call server-side harvest function to calculate offline earnings
+        const result = await window.supabaseClient.harvestBUD();
+        
+        if (result && result.success && result.claimed > 0) {
+            // Show popup with offline earnings
+            showOfflineEarningsPopup(result.claimed);
+            console.log('✅ Claimed offline BUD:', result.claimed);
+        } else {
+            console.log('ℹ️ No offline BUD to claim');
+        }
+    } catch (error) {
+        console.error('❌ Failed to claim offline BUD:', error);
+    }
+}
+
+// Function to show offline earnings popup
+function showOfflineEarningsPopup(budEarned) {
+    // Create popup backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'offline-earnings-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    `;
+    
+    // Create popup content
+    const popup = document.createElement('div');
+    popup.className = 'offline-earnings-popup';
+    popup.style.cssText = `
+        background: #0f1419;
+        border: 3px solid #00ff41;
+        padding: 30px 40px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0, 255, 65, 0.6), inset 0 0 20px rgba(0, 255, 65, 0.1);
+        animation: slideInDown 0.4s ease-out;
+        max-width: 400px;
+        width: 90%;
+    `;
+    
+    // Format BUD amount with commas
+    const formattedBUD = budEarned.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    
+    popup.innerHTML = `
+        <h2 style="
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            color: #00ff41;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+        ">WELCOME BACK!</h2>
+        
+        <div style="
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            color: #7fff7f;
+            margin-bottom: 15px;
+            line-height: 1.8;
+        ">Your plants grew while<br>you were away!</div>
+        
+        <div style="
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid #00ff41;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Press Start 2P', monospace;
+        ">
+            <div style="font-size: 10px; color: #7fff7f; margin-bottom: 10px;">OFFLINE EARNINGS</div>
+            <div style="font-size: 20px; color: #FFD700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);">
+                +${formattedBUD} BUD
+            </div>
+        </div>
+        
+        <button id="closeOfflinePopup" style="
+            background: #00ff41;
+            border: none;
+            color: #0f1419;
+            padding: 12px 30px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #00cc33;
+            margin-top: 10px;
+        ">COLLECT</button>
+    `;
+    
+    backdrop.appendChild(popup);
+    document.body.appendChild(backdrop);
+    
+    // Add animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        #closeOfflinePopup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #00cc33, 0 0 15px rgba(0, 255, 65, 0.4);
+        }
+        #closeOfflinePopup:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #00cc33;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Close button handler
+    const closeBtn = document.getElementById('closeOfflinePopup');
+    closeBtn.addEventListener('click', () => {
+        backdrop.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => backdrop.remove(), 300);
+    });
+    
+    // Also close on backdrop click
+    backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) {
+            backdrop.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => backdrop.remove(), 300);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🌿 BUD Garden - Initializing...');
+    console.log('🌿 GROW - DOMContentLoaded fired - Initializing...');
+    console.log('🔍 Checking globals:', {
+        supabaseClient: typeof window.supabaseClient,
+        SUPABASE_CONFIG: typeof SUPABASE_CONFIG,
+        CONFIG: typeof CONFIG,
+        ITEMS_CONFIG: typeof ITEMS_CONFIG
+    });
     
     // Initialize Supabase first
     const supabaseInitialized = await window.supabaseClient.init(
@@ -50,7 +210,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     gridSystem = new GridSystem();
     plantPlacement = new PlantPlacement(gridSystem);
     inventorySystem = new InventorySystem(plantPlacement);
-    shopSystem = new ShopSystem(inventorySystem, gameState);
+    // Shop system now fetches items from database (server-side validation)
+    shopSystem = new ShopSystem(supabaseClient, inventorySystem);
     
     // Make systems globally accessible EARLY so saves can access them
     window.uiSystem = uiSystem;
@@ -90,22 +251,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (serverInventory && serverInventory.length > 0) {
                 // Map server inventory to client format
                 inventorySystem.items = serverInventory.map(item => {
-                    // Find item config to get full details
-                    const itemConfig = ITEMS_CONFIG.find(config => config.id === item.item_id);
-                    
-                    if (itemConfig) {
+                    // Use item details from database JOIN
+                    if (item.items) {
                         return {
                             id: item.item_id,
-                            name: itemConfig.name,
-                            description: itemConfig.description,
-                            image: itemConfig.image,
-                            type: itemConfig.type,
-                            rewardRate: itemConfig.rewardRate,
-                            count: item.count || item.quantity || 1
+                            name: item.items.name,
+                            description: item.items.description,
+                            image: item.items.image_url, // Use image_url from database
+                            rewardRate: `${item.items.generation_rate} BUD/min`,
+                            count: item.count || 1
                         };
                     } else {
-                        console.warn('⚠️ Unknown item in inventory:', item.item_id);
-                        return null;
+                        // Fallback to ITEMS_CONFIG if JOIN failed
+                        const itemConfig = ITEMS_CONFIG.find(config => config.id === item.item_id);
+                        if (itemConfig) {
+                            return {
+                                id: item.item_id,
+                                name: itemConfig.name,
+                                description: itemConfig.description,
+                                image: itemConfig.image,
+                                type: itemConfig.type,
+                                rewardRate: itemConfig.rewardRate,
+                                count: item.count || 1
+                            };
+                        } else {
+                            console.warn('⚠️ Unknown item in inventory:', item.item_id);
+                            return null;
+                        }
                     }
                 }).filter(item => item !== null); // Remove unknown items
                 
@@ -167,6 +339,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             gameState.saveToStorage();
             console.log('✅ Server data synced successfully (100% cheat-proof)');
             
+            // Calculate and claim offline BUD earnings
+            await claimOfflineBUD();
+            
+            // Initialize shop system (fetches items from database)
+            await shopSystem.init();
+            
         } catch (error) {
             console.error('❌ Failed to load server data:', error);
             console.log('⚠️ Cannot load game without server connection');
@@ -201,11 +379,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize grid aligner (helper tool)
     window.gridAligner = new GridAligner(gridSystem);
     
+    // Add keyboard shortcut for grid aligner (Alt+G or Option+G)
+    document.addEventListener('keydown', (e) => {
+        // Debug logging
+        if (e.key === 'g' || e.key === 'G') {
+            console.log('🔍 G key pressed - altKey:', e.altKey, 'metaKey:', e.metaKey, 'key:', e.key, 'code:', e.code);
+        }
+        
+        // Check for Alt/Option + G (multiple detection methods for Mac compatibility)
+        // Mac Option key registers as altKey
+        const isAltG = e.altKey && (e.key === 'g' || e.key === 'G' || e.code === 'KeyG' || e.keyCode === 71);
+        // Also check if Option+G produces a special character on Mac (©, ˙, etc.)
+        const isMacOptionG = e.altKey && (e.code === 'KeyG' || e.keyCode === 71);
+        
+        if (isAltG || isMacOptionG) {
+            e.preventDefault();
+            console.log('🎯 Grid Aligner shortcut triggered!');
+            if (window.gridAligner.active) {
+                window.gridAligner.deactivate();
+            } else {
+                window.gridAligner.activate();
+            }
+        }
+    });
+    
+    console.log('🎯 Grid Aligner keyboard shortcut registered: Alt+G (Option+G on Mac)');
+    
     // Instructions for alignment
     console.log('');
     console.log('🎯 GRID ALIGNMENT TOOL:');
-    console.log('Type: gridAligner.activate()');
-    console.log('Then use arrow keys to align the grid!');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Method 1 (Keyboard): Press Option+G (Alt+G on Windows)');
+    console.log('Method 2 (Console): Type: window.gridAligner.activate()');
+    console.log('');
+    console.log('💡 If Option+G doesn\'t work, use the console command above!');
+    console.log('   Then use arrow keys to align the grid.');
+    console.log('   Press ESC when done to auto-save alignment.');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
     console.log('🌱 PLANT PLACEMENT:');
     console.log('1. Click an item in your INVENTORY');
@@ -314,7 +524,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    console.log('✅ BUD Garden initialized successfully!');
+    console.log('✅ GROW initialized successfully!');
     console.log('💡 Access debug commands via: BUDGarden.debug');
     console.log('🌿 Happy growing!');
 });

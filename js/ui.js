@@ -61,17 +61,58 @@ class UISystem {
     
     // Update BUD counter
     updateBUDCounter() {
-        const total = this.gameState.player.totalBUD + this.gameState.player.accumulatedBUD;
+        // Use displayBUD for real-time counter (includes pending unclaimed BUD)
+        // Falls back to totalBUD + accumulatedBUD if displayBUD not available
+        const total = this.gameState.player.displayBUD !== undefined 
+            ? this.gameState.player.displayBUD 
+            : this.gameState.player.totalBUD + this.gameState.player.accumulatedBUD;
+        
         this.elements.budCounter.textContent = this.tokenSystem.formatBUD(total);
         
         const value = this.tokenSystem.calculateBUDValue(total);
         this.elements.budValue.textContent = this.tokenSystem.formatUSD(value);
     }
     
-    // Update BUD Generation Stats (simplified - no functionality)
-    updateGenerationStats() {
-        // Removed all generation logic - game is now functionless
-        // Will rebuild from scratch
+    // Update BUD Generation Stats
+    async updateGenerationStats() {
+        try {
+            // Session Total = total_bud (current balance, which represents all earnings)
+            // This is your lifetime earnings since accumulated_bud may not be tracking correctly
+            const totalEarnings = this.gameState.player.total_bud || 0;
+            this.elements.sessionTotal.textContent = this.tokenSystem.formatBUD(totalEarnings);
+            
+            // Calculate per day rate from placed plants
+            let totalRatePerMinute = 0;
+            
+            // Get placed plants from server or local state
+            if (window.supabaseClient && window.supabaseClient.currentUser) {
+                const plants = await window.supabaseClient.getPlacedPlants();
+                
+                // Sum up all generation rates
+                for (const plant of plants) {
+                    // Get the item's generation rate from database
+                    const { data: itemData } = await window.supabaseClient.supabase
+                        .from('items')
+                        .select('generation_rate')
+                        .eq('id', plant.item_id)
+                        .single();
+                    
+                    if (itemData && itemData.generation_rate) {
+                        totalRatePerMinute += Number(itemData.generation_rate);
+                    }
+                }
+            }
+            
+            // Convert to per day (rate per minute * 60 minutes * 24 hours)
+            const perDayRate = totalRatePerMinute * 60 * 24;
+            this.elements.perDay.textContent = `${this.tokenSystem.formatBUD(perDayRate)} BUD/day`;
+            
+        } catch (error) {
+            console.error('❌ Error updating generation stats:', error);
+            // Fallback values
+            this.elements.sessionTotal.textContent = '0.00 BUD';
+            this.elements.perDay.textContent = '0.00 BUD/day';
+        }
     }
     
     // Update cooldowns (removed, no longer needed)

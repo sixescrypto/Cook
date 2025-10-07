@@ -18,9 +18,26 @@ class GridAligner {
         this.createInfoPanel();
         this.bindKeys();
         this.updateInfo();
+        this.showAllTiles(); // Show all tiles with borders
         
         console.log('🎯 Grid Alignment Mode ACTIVE');
-        console.log('Use arrow keys and +/- to adjust. Press ESC to finish.');
+        console.log('Use arrow keys to move the entire grid. Press ESC to finish.');
+    }
+    
+    // Show all tiles with visible borders
+    showAllTiles() {
+        this.gridSystem.tiles.forEach(tileData => {
+            tileData.element.classList.add('aligner-visible');
+        });
+        console.log('✅ All tiles now visible for alignment');
+    }
+    
+    // Hide tile borders
+    hideAllTiles() {
+        this.gridSystem.tiles.forEach(tileData => {
+            tileData.element.classList.remove('aligner-visible');
+        });
+        console.log('✅ Tile borders hidden');
     }
     
     // Deactivate alignment mode
@@ -30,22 +47,27 @@ class GridAligner {
         this.active = false;
         if (this.helpPanel) this.helpPanel.remove();
         if (this.infoPanel) this.infoPanel.remove();
+        this.hideAllTiles(); // Hide tile borders
         document.removeEventListener('keydown', this.keyHandler);
+        
+        // Save current alignment to gridSystem
+        this.gridSystem.saveCurrentAlignment();
+        
+        const width = window.innerWidth;
+        const breakpointName = this.gridSystem.currentBreakpoint || 'Unknown';
         
         console.log('✅ Grid Alignment Mode DEACTIVATED');
         console.log('');
-        console.log('📋 FINAL VALUES - Copy these to gridSystem.js:');
+        console.log(`📋 SAVED ALIGNMENT FOR: ${breakpointName}`);
+        console.log(`   Window Width: ${width}px`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`this.rows = ${this.gridSystem.rows};`);
-        console.log(`this.cols = ${this.gridSystem.cols};`);
-        console.log(`this.tileWidth = ${this.gridSystem.tileWidth};`);
-        console.log(`this.tileHeight = ${this.gridSystem.tileHeight};`);
-        console.log(`this.offsetX = ${this.gridSystem.offsetX.toFixed(3)};`);
-        console.log(`this.offsetY = ${this.gridSystem.offsetY.toFixed(3)};`);
+        console.log(`   offsetX: ${this.gridSystem.offsetX.toFixed(3)}`);
+        console.log(`   offsetY: ${this.gridSystem.offsetY.toFixed(3)}`);
+        console.log(`   tileWidth: ${this.gridSystem.tileWidth}px`);
+        console.log(`   tileHeight: ${this.gridSystem.tileHeight}px`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('');
-        console.log('📝 Location: js/gridSystem.js, lines 5-15');
-        console.log('💡 Tell me these values and I\'ll update the file for you!');
+        console.log('✅ Alignment saved to localStorage');
+        console.log('💡 Resize window to adjust other breakpoints');
     }
     
     // Create help panel
@@ -53,7 +75,7 @@ class GridAligner {
         this.helpPanel = document.createElement('div');
         this.helpPanel.id = 'gridAlignerHelp';
         this.helpPanel.innerHTML = `
-            <div style="
+            <div id="gridAlignerContent" style="
                 position: fixed;
                 top: 20px;
                 right: 20px;
@@ -66,16 +88,29 @@ class GridAligner {
                 z-index: 10000;
                 max-width: 350px;
                 box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+                cursor: move;
+                user-select: none;
             ">
-                <div style="margin-bottom: 15px; font-size: 11px; text-align: center; border-bottom: 2px solid #00ff41; padding-bottom: 10px;">
+                <div id="gridAlignerHeader" style="margin-bottom: 15px; font-size: 11px; text-align: center; border-bottom: 2px solid #00ff41; padding-bottom: 10px;">
                     🎯 GRID ALIGNER
+                    <button id="toggleTransparency" style="
+                        float: right;
+                        background: rgba(0, 255, 65, 0.2);
+                        border: 2px solid #00ff41;
+                        color: #00ff41;
+                        cursor: pointer;
+                        padding: 4px 8px;
+                        font-family: 'Press Start 2P', monospace;
+                        font-size: 7px;
+                        margin-top: -5px;
+                    ">👁️</button>
                 </div>
                 
-                <div style="margin-bottom: 10px; color: #4a9d5f;">POSITION:</div>
+                <div style="margin-bottom: 10px; color: #4a9d5f;">MOVE ENTIRE GRID:</div>
                 <div style="margin-left: 10px; line-height: 1.8;">
-                    ← → : Move Left/Right<br>
-                    ↑ ↓ : Move Up/Down<br>
-                    Shift + Arrows: Fine tune
+                    ← → ↑ ↓ : Move Grid<br>
+                    Shift + Arrows: Fine Adjust<br>
+                    (All tiles move together)
                 </div>
                 
                 <div style="margin: 10px 0; color: #4a9d5f;">TILE SIZE:</div>
@@ -103,9 +138,18 @@ class GridAligner {
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #00ff41; color: #ffff00; text-align: center;">
                     ESC : Finish & Save
                 </div>
+                <div style="margin-top: 8px; color: #888; font-size: 7px; text-align: center;">
+                    Drag to move • 👁️ to toggle transparency
+                </div>
             </div>
         `;
         document.body.appendChild(this.helpPanel);
+        
+        // Make panel draggable
+        this.makeDraggable();
+        
+        // Add transparency toggle
+        this.addTransparencyToggle();
     }
     
     // Create info panel
@@ -133,7 +177,14 @@ class GridAligner {
     updateInfo() {
         if (!this.infoPanel) return;
         
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const resolutionKey = `${width}x${height}`;
+        const breakpointName = this.gridSystem.currentBreakpoint || 'Unknown';
+        
         this.infoPanel.innerHTML = `
+            <div style="margin-bottom: 8px; color: #00ff41; font-size: 9px;">RESOLUTION: ${resolutionKey}</div>
+            <div style="margin-bottom: 8px; color: #ffaa00; font-size: 8px;">BREAKPOINT: ${breakpointName}</div>
             <div style="margin-bottom: 8px; color: #ffffff; font-size: 9px;">CURRENT VALUES:</div>
             <div style="line-height: 1.8;">
                 Grid: ${this.gridSystem.rows}x${this.gridSystem.cols}<br>
@@ -141,6 +192,9 @@ class GridAligner {
                 Y: ${this.gridSystem.offsetY.toFixed(3)}<br>
                 Width: ${this.gridSystem.tileWidth}px<br>
                 Height: ${this.gridSystem.tileHeight}px
+            </div>
+            <div style="margin-top: 10px; color: #4a9d5f; font-size: 7px; border-top: 1px solid #ffff00; padding-top: 8px;">
+                Adjustments auto-save<br>to localStorage on ESC
             </div>
         `;
     }
@@ -233,6 +287,7 @@ class GridAligner {
                 case 'R':
                     this.gridSystem.rows++;
                     this.gridSystem.createIsometricGrid();
+                    this.showAllTiles(); // Re-show tile borders after grid recreated
                     handled = true;
                     break;
                     
@@ -241,6 +296,7 @@ class GridAligner {
                     if (this.gridSystem.rows > 1) {
                         this.gridSystem.rows--;
                         this.gridSystem.createIsometricGrid();
+                        this.showAllTiles(); // Re-show tile borders after grid recreated
                     }
                     handled = true;
                     break;
@@ -249,6 +305,7 @@ class GridAligner {
                 case 'C':
                     this.gridSystem.cols++;
                     this.gridSystem.createIsometricGrid();
+                    this.showAllTiles(); // Re-show tile borders after grid recreated
                     handled = true;
                     break;
                     
@@ -257,6 +314,7 @@ class GridAligner {
                     if (this.gridSystem.cols > 1) {
                         this.gridSystem.cols--;
                         this.gridSystem.createIsometricGrid();
+                        this.showAllTiles(); // Re-show tile borders after grid recreated
                     }
                     handled = true;
                     break;
@@ -275,6 +333,101 @@ class GridAligner {
         };
         
         document.addEventListener('keydown', this.keyHandler);
+    }
+    
+    // Make the help panel draggable
+    makeDraggable() {
+        const panel = document.getElementById('gridAlignerContent');
+        if (!panel) return;
+        
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+        
+        panel.addEventListener('mousedown', dragStart);
+        panel.addEventListener('touchstart', dragStart);
+        
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
+        
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+        
+        function dragStart(e) {
+            if (e.target.id === 'toggleTransparency') return; // Don't drag when clicking button
+            
+            if (e.type === 'touchstart') {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+            } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+            }
+            
+            isDragging = true;
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            
+            if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+            } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+            }
+            
+            xOffset = currentX;
+            yOffset = currentY;
+            
+            setTranslate(currentX, currentY, panel);
+        }
+        
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+        
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+    }
+    
+    // Add transparency toggle functionality
+    addTransparencyToggle() {
+        const toggleBtn = document.getElementById('toggleTransparency');
+        const panel = document.getElementById('gridAlignerContent');
+        
+        if (!toggleBtn || !panel) return;
+        
+        let isTransparent = false;
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent dragging when clicking button
+            
+            isTransparent = !isTransparent;
+            
+            if (isTransparent) {
+                panel.style.opacity = '0.2';
+                panel.style.pointerEvents = 'none'; // Allow clicking through
+                toggleBtn.style.pointerEvents = 'auto'; // But keep button clickable
+                toggleBtn.textContent = '👁️‍🗨️';
+                console.log('👁️ Grid Aligner: Transparent mode ON');
+            } else {
+                panel.style.opacity = '1';
+                panel.style.pointerEvents = 'auto';
+                toggleBtn.textContent = '👁️';
+                console.log('👁️ Grid Aligner: Transparent mode OFF');
+            }
+        });
     }
 }
 

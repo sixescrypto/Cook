@@ -109,6 +109,9 @@ class PlantPlacement {
         const img = this.previewElement.querySelector('.plant-preview-image');
         img.src = this.plantImage;
         
+        // Scale preview to match placed plant size
+        this.previewElement.style.width = `${this.gridSystem.tileWidth}px`;
+        
         this.previewElement.style.left = tile.style.left;
         this.previewElement.style.top = tile.style.top;
         this.previewElement.style.display = 'block';
@@ -255,6 +258,9 @@ class PlantPlacement {
         plant.dataset.row = row;
         plant.dataset.col = col;
         
+        // Set plant container size to match tile size (scales with resolution)
+        plant.style.width = `${this.gridSystem.tileWidth}px`;
+        
         // Create plant image
         const img = document.createElement('img');
         img.src = this.plantImage;
@@ -281,17 +287,22 @@ class PlantPlacement {
         plant.style.left = tileElement.style.left;
         plant.style.top = tileElement.style.top;
         
-        // Apply item-specific position adjustments
+        // Apply item-specific position adjustments (scaled to tile size)
+        // Base adjustment is 15px at 144px tile width, scales proportionally
+        const adjustmentScale = this.gridSystem.tileWidth / 144;
+        
         if (itemId === 'mini-mary') {
-            // Lift mini-mary up by 15px for better centering
+            // Lift mini-mary up for better centering (scales with tile size)
             const currentTop = parseFloat(plant.style.top);
-            plant.style.top = (currentTop - 15) + 'px';
+            const adjustment = 15 * adjustmentScale;
+            plant.style.top = (currentTop - adjustment) + 'px';
         }
         
         if (itemId === 'puff-daddy') {
-            // Lift puff-daddy up by 15px for better centering
+            // Lift puff-daddy up for better centering (scales with tile size)
             const currentTop = parseFloat(plant.style.top);
-            plant.style.top = (currentTop - 15) + 'px';
+            const adjustment = 15 * adjustmentScale;
+            plant.style.top = (currentTop - adjustment) + 'px';
         }
         
         // Set z-index based on row AND column for proper isometric layering
@@ -1109,6 +1120,9 @@ class PlantPlacement {
         plant.dataset.row = row;
         plant.dataset.col = col;
         
+        // Set plant container size to match tile size (scales with resolution)
+        plant.style.width = `${this.gridSystem.tileWidth}px`;
+        
         // Get item image from ITEMS_CONFIG (not inventory, since placed items may have 0 count)
         let imageSrc = this.plantImage;
         const itemConfig = ITEMS_CONFIG.find(config => config.id === itemId);
@@ -1142,17 +1156,22 @@ class PlantPlacement {
         plant.style.left = tileElement.style.left;
         plant.style.top = tileElement.style.top;
         
-        // Apply item-specific position adjustments
+        // Apply item-specific position adjustments (scaled to tile size)
+        // Base adjustment is 15px at 144px tile width, scales proportionally
+        const adjustmentScale = this.gridSystem.tileWidth / 144;
+        
         if (itemId === 'mini-mary') {
-            // Lift mini-mary up by 15px for better centering
+            // Lift mini-mary up for better centering (scales with tile size)
             const currentTop = parseFloat(plant.style.top);
-            plant.style.top = (currentTop - 15) + 'px';
+            const adjustment = 15 * adjustmentScale;
+            plant.style.top = (currentTop - adjustment) + 'px';
         }
         
         if (itemId === 'puff-daddy') {
-            // Lift puff-daddy up by 15px for better centering
+            // Lift puff-daddy up for better centering (scales with tile size)
             const currentTop = parseFloat(plant.style.top);
-            plant.style.top = (currentTop - 15) + 'px';
+            const adjustment = 15 * adjustmentScale;
+            plant.style.top = (currentTop - adjustment) + 'px';
         }
         
         plant.style.zIndex = 10 + (row * 10) + col;
@@ -1227,6 +1246,11 @@ class PlantPlacement {
         const particle = document.createElement('div');
         particle.className = 'earning-particle';
         
+        // Scale particle to 30% of tile size (much smaller than plant)
+        const particleSize = Math.round(this.gridSystem.tileWidth * 0.3);
+        particle.style.width = `${particleSize}px`;
+        particle.style.height = `${particleSize}px`;
+        
         const budImg = document.createElement('img');
         budImg.src = 'assets/bud.png';
         budImg.alt = 'BUD';
@@ -1261,13 +1285,11 @@ class PlantPlacement {
             // Use server-side generation only
             console.log('💚 Using server-side BUD generation');
             
-            // Claim accumulated BUD on first load (includes offline generation)
-            const claimResult = await window.supabaseClient.claimAccumulatedBUD();
-            if (claimResult && claimResult.success && claimResult.claimed > 0) {
-                console.log(`💰 Offline generation claimed: +${claimResult.claimed.toFixed(2)} BUD (${claimResult.timeElapsedMinutes} minutes)`);
-            }
+            // AUTOMATIC CLAIM DISABLED - Players must manually claim earnings
+            // This prevents automated farming and ensures active engagement
+            console.log('⏸️ Automatic claim disabled - use HARVEST button to claim BUD');
             
-            // Now sync current BUD immediately
+            // Now sync current BUD immediately to show unclaimed balance
             await this.syncBUDWithServer();
             
             // Sync with server every 1 second for real-time updates
@@ -1297,7 +1319,15 @@ class PlantPlacement {
                 this.gameState.player.totalBUD = parseFloat(budData.totalBUD || 0);
                 this.gameState.player.accumulatedBUD = parseFloat(budData.accumulatedBUD || 0);
                 
-                // Update UI
+                // Use displayBUD for real-time counter (includes pending unclaimed BUD)
+                // This shows the total balance + what's currently generating
+                if (budData.displayBUD !== undefined) {
+                    this.gameState.player.displayBUD = parseFloat(budData.displayBUD);
+                } else {
+                    this.gameState.player.displayBUD = this.gameState.player.totalBUD;
+                }
+                
+                // Update UI with real-time value
                 if (window.uiSystem && window.uiSystem.updateBUDCounter) {
                     window.uiSystem.updateBUDCounter();
                 }

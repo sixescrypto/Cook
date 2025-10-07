@@ -40,6 +40,7 @@ class InventorySystem {
         this.renderInventory();
         
         this.setupEquipButton();
+        this.setupCloseButton();
         
         console.log('✅ Inventory System initialized');
         console.log('📦 Inventory grid children:', this.inventoryGrid.children.length);
@@ -298,6 +299,17 @@ class InventorySystem {
     hideEquipPanel() {
         if (this.equipPanel) {
             this.equipPanel.style.display = 'none';
+        }
+    }
+    
+    // Setup close button for equip panel
+    setupCloseButton() {
+        const closeBtn = document.getElementById('equipCloseBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.hideEquipPanel();
+                this.selectedItem = null;
+            });
         }
     }
     

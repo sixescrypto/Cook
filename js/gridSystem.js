@@ -10,9 +10,97 @@ class GridSystem {
         this.tileWidth = 144;  // Width of diamond
         this.tileHeight = 70; // Height of diamond
         
-        // Offset to center the grid on the floor (perfectly aligned)
-        this.offsetX = 0.416; // 41.6% from left
-        this.offsetY = 0.448; // 44.8% from top
+        // Resolution-specific grid alignments
+        // More granular breakpoints ensure perfect alignment at all screen sizes
+        // Tile dimensions scale proportionally between breakpoints
+        this.resolutionBreakpoints = [
+            // Desktop (large screens) - 1410px+
+            { minWidth: 1410, offsetX: 0.416, offsetY: 0.446, tileWidth: 144, tileHeight: 70, name: 'Desktop' },
+            // Large Laptop - 1300px (Custom aligned)
+            { minWidth: 1300, offsetX: 0.416, offsetY: 0.446, tileWidth: 133, tileHeight: 64, name: 'Large Laptop' },
+            // Laptop (medium screens) - 1200px (TESTED)
+            { minWidth: 1200, offsetX: 0.416, offsetY: 0.446, tileWidth: 186, tileHeight: 91, name: 'Laptop' },
+            // Small Laptop - 1100px
+            { minWidth: 1100, offsetX: 0.416, offsetY: 0.446, tileWidth: 170, tileHeight: 83, name: 'Small Laptop' },
+            // Tablet landscape - 1024px
+            { minWidth: 1024, offsetX: 0.416, offsetY: 0.446, tileWidth: 160, tileHeight: 78, name: 'Tablet Landscape' },
+            // Tablet portrait - 900px (TESTED)
+            { minWidth: 900, offsetX: 0.416, offsetY: 0.446, tileWidth: 138, tileHeight: 67, name: 'Tablet Portrait' },
+            // Large Tablet - 768px
+            { minWidth: 768, offsetX: 0.416, offsetY: 0.446, tileWidth: 120, tileHeight: 58, name: 'Large Tablet' },
+            // Small Tablet - 640px
+            { minWidth: 640, offsetX: 0.416, offsetY: 0.446, tileWidth: 100, tileHeight: 49, name: 'Small Tablet' },
+            // Mobile landscape - 480px
+            { minWidth: 480, offsetX: 0.416, offsetY: 0.438, tileWidth: 80, tileHeight: 39, name: 'Mobile Landscape' },
+            // Mobile portrait - 400px and below (TESTED - 400x965)
+            { minWidth: 400, offsetX: 0.416, offsetY: 0.468, tileWidth: 52, tileHeight: 25, name: 'Mobile Portrait' },
+            // Very small screens fallback
+            { minWidth: 0, offsetX: 0.416, offsetY: 0.468, tileWidth: 52, tileHeight: 25, name: 'Mobile Small' }
+        ];
+        
+        // Apply initial resolution settings
+        this.applyResolutionSettings();
+    }
+    
+    // Detect current screen size and apply appropriate grid alignment
+    applyResolutionSettings() {
+        const width = window.innerWidth;
+        
+        // Find the closest breakpoint by calculating distance to each
+        let closestBreakpoint = this.resolutionBreakpoints[0];
+        let smallestDistance = Math.abs(width - closestBreakpoint.minWidth);
+        
+        for (const bp of this.resolutionBreakpoints) {
+            const distance = Math.abs(width - bp.minWidth);
+            if (distance < smallestDistance) {
+                smallestDistance = distance;
+                closestBreakpoint = bp;
+            }
+        }
+        
+        this.offsetX = closestBreakpoint.offsetX;
+        this.offsetY = closestBreakpoint.offsetY;
+        this.tileWidth = closestBreakpoint.tileWidth;
+        this.tileHeight = closestBreakpoint.tileHeight;
+        this.currentBreakpoint = closestBreakpoint.name;
+        console.log(`📐 Applied ${closestBreakpoint.name} alignment (${width}px, ${smallestDistance}px away) - offsetX: ${this.offsetX}, offsetY: ${this.offsetY}, tileWidth: ${this.tileWidth}px, tileHeight: ${this.tileHeight}px`);
+    }
+    
+    // Save current alignment to the appropriate breakpoint
+    saveCurrentAlignment() {
+        const width = window.innerWidth;
+        const breakpoint = this.resolutionBreakpoints.find(bp => width >= bp.minWidth);
+        
+        if (breakpoint) {
+            breakpoint.offsetX = this.offsetX;
+            breakpoint.offsetY = this.offsetY;
+            console.log(`💾 Saved alignment for ${breakpoint.name}: offsetX=${this.offsetX}, offsetY=${this.offsetY}`);
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('gridAlignments', JSON.stringify(this.resolutionBreakpoints));
+            console.log('✅ Grid alignments saved to localStorage');
+        }
+    }
+    
+    // Load saved alignments from localStorage
+    loadSavedAlignments() {
+        const saved = localStorage.getItem('gridAlignments');
+        if (saved) {
+            try {
+                const savedBreakpoints = JSON.parse(saved);
+                // Merge saved values with defaults
+                savedBreakpoints.forEach(savedBp => {
+                    const breakpoint = this.resolutionBreakpoints.find(bp => bp.name === savedBp.name);
+                    if (breakpoint) {
+                        breakpoint.offsetX = savedBp.offsetX;
+                        breakpoint.offsetY = savedBp.offsetY;
+                    }
+                });
+                console.log('✅ Loaded saved grid alignments from localStorage');
+            } catch (error) {
+                console.error('❌ Failed to load saved alignments:', error);
+            }
+        }
     }
     
     // Initialize grid system
@@ -22,6 +110,9 @@ class GridSystem {
             console.error('❌ Grid overlay element not found');
             return;
         }
+        
+        // Apply resolution-specific settings (use defaults from code)
+        this.applyResolutionSettings();
         
         console.log('✅ Grid overlay found:', this.gridOverlay);
         this.createIsometricGrid();
@@ -34,6 +125,80 @@ class GridSystem {
                 top: this.tiles[0].element.style.top
             });
         }
+        
+        // Add resize listener to update grid when window is resized
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(async () => {
+                console.log('🔄 Window resized, updating grid...');
+                
+                // Reapply resolution settings for new window size
+                this.applyResolutionSettings();
+                
+                this.createIsometricGrid();
+                
+                // Reload plants from server after grid recreation
+                if (window.supabaseClient && window.currentPlayer && window.plantPlacement) {
+                    try {
+                        console.log('🌱 Reloading plants after grid resize...');
+                        const serverPlants = await window.supabaseClient.getPlacedPlants();
+                        
+                        if (serverPlants && serverPlants.length > 0) {
+                            // Clear any existing plants and animations
+                            window.plantPlacement.plants.forEach(plant => {
+                                if (plant.earningInterval) {
+                                    clearInterval(plant.earningInterval);
+                                }
+                            });
+                            window.plantPlacement.plants = [];
+                            
+                            // Clear all BUD animation particles
+                            const particles = this.gridOverlay.querySelectorAll('.earning-particle');
+                            particles.forEach(p => p.remove());
+                            
+                            const gardenContainer = document.querySelector('.garden-container');
+                            if (gardenContainer) {
+                                const plantElements = gardenContainer.querySelectorAll('.plant-container, .item-container');
+                                plantElements.forEach(el => el.remove());
+                            }
+                            
+                            // Reset grid tile availability
+                            this.tiles.forEach(tile => {
+                                tile.occupied = false;
+                                tile.plantId = null;
+                            });
+                            
+                            // Restore plants
+                            serverPlants.forEach((serverPlant) => {
+                                const itemConfig = ITEMS_CONFIG.find(config => config.id === serverPlant.item_id);
+                                
+                                const plantData = {
+                                    row: serverPlant.grid_row,
+                                    col: serverPlant.grid_col,
+                                    itemId: serverPlant.item_id,
+                                    itemName: itemConfig ? itemConfig.name : serverPlant.item_id,
+                                    itemDescription: itemConfig ? itemConfig.description : '',
+                                    rewardRate: serverPlant.reward_rate,
+                                    rotation: serverPlant.rotation || 0,
+                                    serverPlantId: serverPlant.id
+                                };
+                                window.plantPlacement.restorePlant(plantData);
+                            });
+                            
+                            console.log('✅ Plants reloaded after resize:', serverPlants.length);
+                        }
+                    } catch (error) {
+                        console.error('❌ Failed to reload plants after resize:', error);
+                    }
+                }
+                
+                // If grid aligner is active, reapply tile borders
+                if (window.gridAligner && window.gridAligner.active) {
+                    window.gridAligner.showAllTiles();
+                }
+            }, 250); // Debounce resize events
+        });
     }
     
     // Create isometric grid tiles

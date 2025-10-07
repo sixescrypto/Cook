@@ -96,12 +96,12 @@ body::after {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 0px;
     background: #1a1f28;
     border: 3px solid #00ff41;
     border-radius: 0;
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     position: relative;
 }
 
@@ -131,8 +131,28 @@ body::after {
 
 .title-section {
     text-align: center;
+    padding: 10px 10px 10px 10px;
 }
 
+/* Logo styling */
+.game-title-logo {
+    height: 270px;
+    width: auto;
+    margin-top: -70px;
+    margin-bottom: -55px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(2px 2px 4px rgba(0, 255, 65, 0.3));
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.game-title-logo:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(2px 2px 8px rgba(0, 255, 65, 0.6));
+}
+
+/* Old text title (kept for backwards compatibility) */
 .game-title {
     font-size: 28px;
     text-shadow: 2px 2px 0 #00aa2e;
@@ -216,7 +236,7 @@ body::after {
 
 /* Isometric Room Container */
 .room-container {
-    background: #0f1419;
+    background: #000000;
     border: 3px solid #00ff41;
     padding: 0;
     position: relative;
@@ -354,6 +374,35 @@ body::after {
     animation: pulseHighlight 1.5s ease-in-out infinite;
 }
 
+/* Grid Aligner Mode - Show all tiles with visible borders */
+.grid-tile.aligner-visible {
+    opacity: 1 !important;
+}
+
+.grid-tile.aligner-visible::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 215, 0, 0.1);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    pointer-events: none;
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px rgba(255, 215, 0, 0.8);
+    animation: alignerPulse 2s ease-in-out infinite;
+}
+
+@keyframes alignerPulse {
+    0%, 100% {
+        box-shadow: inset 0 0 0 2px rgba(255, 215, 0, 0.6);
+    }
+    50% {
+        box-shadow: inset 0 0 0 2px rgba(255, 215, 0, 1);
+    }
+}
+
 @keyframes pulseHighlight {
     0%, 100% {
         box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
@@ -403,7 +452,7 @@ body::after {
 /* Plant Preview (Ghost Image) */
 .plant-preview {
     position: absolute;
-    width: 144px;
+    /* Width set dynamically by JavaScript to match tile size */
     height: auto;
     pointer-events: none;
     z-index: 150;
@@ -1043,7 +1092,7 @@ body::after {
 }
 
 .inventory-item-image {
-    width: 60%;
+    width: 80%;
     height: auto;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
@@ -1090,6 +1139,28 @@ body::after {
     padding: 15px;
     text-align: center;
     margin-top: 15px;
+    position: relative;
+}
+
+.equip-close-btn {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: #FFD700;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    transition: color 0.2s;
+}
+
+.equip-close-btn:hover {
+    color: #ff0000;
 }
 
 .equip-item-details {
@@ -1800,6 +1871,28 @@ body::after {
 }
 
 /* Responsive Design */
+/* Fix equip panel layout shift for medium screens (1200-1370px) */
+@media (min-width: 1201px) and (max-width: 1370px) {
+    .inventory-section {
+        position: relative;
+    }
+    
+    .equip-panel {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 10px;
+        margin-bottom: 0;
+        z-index: 100;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .equip-close-btn {
+        display: block !important; /* Show close button only in this range */
+    }
+}
+
 @media (max-width: 1200px) {
     .game-main {
         grid-template-columns: 1fr;
@@ -1807,6 +1900,17 @@ body::after {
     
     .token-info {
         grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Swap order: Shop (leaderboard) above Token Stats */
+    .token-info .leaderboard {
+        order: 1;
+    }
+    
+    .token-info .token-stats {
+        order: 2;
     }
 }
 
@@ -1828,7 +1932,7 @@ body::after {
         grid-template-columns: 1fr;
     }
     
-    /* Use transform scale to keep grid aligned */
+    /* Grid system handles responsive alignment */
     .game-main {
         grid-template-columns: 1fr;
     }
@@ -1843,20 +1947,37 @@ body::after {
     }
     
     .room-view {
-        transform: scale(0.7);
-        transform-origin: center center;
+        /* No transform scaling - grid handles alignment per breakpoint */
         min-height: 600px;
+        width: 100%;
+        max-width: 100%;
     }
     
     /* Adjust inventory for mobile */
     .inventory-grid {
-        grid-template-columns: repeat(4, 60px);
+        grid-template-columns: repeat(4, 70px);
         gap: 8px;
+        justify-content: center;
     }
     
     .inventory-slot {
-        width: 60px;
-        height: 60px;
+        width: 70px;
+        height: 70px;
+        padding: 3px;
+    }
+    
+    .inventory-item {
+        padding: 3px !important;
+        gap: 2px !important;
+    }
+    
+    .inventory-item-image {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .inventory-item-name {
+        font-size: 5px !important;
     }
     
     .control-panel {
@@ -1876,18 +1997,106 @@ body::after {
     }
     
     .room-view {
-        transform: scale(0.5);
-        transform-origin: center center;
+        /* No transform scaling - grid handles alignment per breakpoint */
+        min-height: 400px;
+    }
+    
+    /* Scale logo down for mobile */
+    .game-title-logo {
+        height: 70px;
+    }
+    
+    /* Show full room on mobile without cropping */
+    .room-background {
+        object-fit: contain;
+        width: 100%;
+        height: auto;
+    }
+    
+    /* Scale logo for mobile */
+    .game-title-logo {
+        height: 100px;
+        margin-top: -25px;
+        margin-bottom: -20px;
+    }
+    
+    /* Make Buy $BUD button smaller on mobile */
+    .buy-button {
+        top: 10px;
+        right: 10px;
+        padding: 6px 12px;
+        font-size: 7px;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Make item info section smaller on mobile */
+    .equip-item-details {
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    
+    .equip-item-preview {
+        width: 40px;
+    }
+    
+    .equip-item-name {
+        font-size: 7px;
+    }
+    
+    .equip-btn {
+        font-size: 7px;
+        padding: 8px;
     }
     
     .inventory-grid {
-        grid-template-columns: repeat(4, 50px);
+        grid-template-columns: repeat(4, 65px);
         gap: 6px;
+        justify-content: center;
     }
     
     .inventory-slot {
-        width: 50px;
-        height: 50px;
+        width: 65px;
+        height: 65px;
+        padding: 1px;
+    }
+    
+    .inventory-item {
+        padding: 1px !important;
+        gap: 0px !important;
+        border-width: 1px !important;
+        position: relative !important;
+    }
+    
+    .inventory-item-image {
+        width: 70% !important;
+        max-width: 70% !important;
+        height: auto !important;
+    }
+    
+    .inventory-item-name {
+        position: absolute !important;
+        bottom: 12px !important;
+        left: 0 !important;
+        right: 0 !important;
+        font-size: 4px !important;
+        line-height: 1 !important;
+        padding: 1px !important;
+        background: transparent !important;
+        margin: 0 !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    .inventory-item-reward {
+        position: absolute !important;
+        bottom: 6px !important;
+        left: 0 !important;
+        right: 0 !important;
+        font-size: 4px !important;
+        line-height: 1 !important;
+        padding: 1px !important;
+        background: transparent !important;
+        margin: 0 !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
     }
     
     .game-title {
@@ -1944,6 +2153,7 @@ body::after {
     width: 90%;
     box-shadow: 0 0 20px rgba(0, 255, 65, 0.5), inset 0 0 20px rgba(0, 255, 65, 0.1);
     animation: slideIn 0.3s ease-out;
+    position: relative;
 }
 
 @keyframes slideIn {
@@ -1982,6 +2192,10 @@ body::after {
     border: 2px solid #00ff41;
     border-radius: 4px;
     image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+    display: block;
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
 }
 
@@ -2008,9 +2222,25 @@ body::after {
     margin-bottom: 5px;
 }
 
+.item-price span {
+    color: #ffff00;
+    font-size: 10px;
+    display: inline;
+    visibility: visible;
+    opacity: 1;
+}
+
 .current-balance {
     font-size: 8px;
     color: #00bfff;
+}
+
+.current-balance span {
+    color: #00bfff;
+    font-size: 8px;
+    display: inline;
+    visibility: visible;
+    opacity: 1;
 }
 
 .modal-buttons {
@@ -2055,7 +2285,160 @@ body::after {
 }
 
 /* Mobile responsive */
-@media (max-width: 600px) {
+@media (max-width: 480px) {
+    .purchase-modal {
+        padding: 15px;
+        max-width: 300px;
+        width: 85%;
+    }
+    
+    .purchase-modal h2 {
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .purchase-modal-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .item-preview {
+        margin-bottom: 10px;
+    }
+    
+    .item-preview img {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .item-details h3 {
+        font-size: 10px;
+    }
+    
+    .item-description {
+        font-size: 8px;
+    }
+    
+    .item-price {
+        font-size: 9px;
+    }
+    
+    .current-balance {
+        font-size: 7px;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .modal-buttons button {
+        width: 100%;
+        font-size: 9px;
+        padding: 8px;
+    }
+    
+    /* Plant Info Panel - Mobile 480px */
+    .plant-info-panel {
+        width: 200px !important;
+        padding: 8px !important;
+        top: 10px !important;
+        right: 10px !important;
+        border-width: 2px !important;
+    }
+    
+    .plant-info-header {
+        font-size: 7px !important;
+        margin-bottom: 5px !important;
+        padding-right: 15px !important;
+    }
+    
+    .plant-info-description {
+        font-size: 6px !important;
+        margin-bottom: 6px !important;
+        white-space: normal !important;
+    }
+    
+    .plant-info-reward {
+        padding: 6px 8px !important;
+        border-width: 1px !important;
+    }
+    
+    .reward-label {
+        font-size: 6px !important;
+    }
+    
+    .reward-value {
+        font-size: 7px !important;
+    }
+    
+    .info-close-btn {
+        font-size: 12px !important;
+        width: 15px !important;
+        height: 15px !important;
+        top: 5px !important;
+        right: 5px !important;
+    }
+    
+    /* Radio Controls - Mobile 480px */
+    .radio-controls {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+    }
+    
+    .radio-power-btn {
+        padding: 5px !important;
+        font-size: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .track-buttons {
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .track-btn {
+        padding: 4px !important;
+        font-size: 4px !important;
+    }
+    
+    .volume-control {
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    .volume-control label {
+        font-size: 4px !important;
+    }
+    
+    .volume-control input[type="range"] {
+        height: 3px !important;
+    }
+    
+    .volume-control input[type="range"]::-webkit-slider-thumb {
+        width: 8px !important;
+        height: 8px !important;
+    }
+    
+    .volume-control input[type="range"]::-moz-range-thumb {
+        width: 8px !important;
+        height: 8px !important;
+    }
+    
+    .volume-control span {
+        font-size: 4px !important;
+        min-width: 20px !important;
+    }
+    
+    .now-playing {
+        padding: 4px !important;
+        font-size: 4px !important;
+    }
+}
+
+/* Tablet and larger mobile (keep existing styles) */
+@media (max-width: 600px) and (min-width: 401px) {
     .purchase-modal {
         padding: 15px;
     }
