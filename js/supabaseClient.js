@@ -141,14 +141,35 @@ class SupabaseClient {
         if (!this.currentUser) return [];
 
         try {
+            // Try to get plants with items data (requires foreign key relationship)
             const { data, error } = await this.supabase
                 .from('placed_plants')
-                .select('*')
+                .select(`
+                    *,
+                    items (
+                        image_url,
+                        name,
+                        description
+                    )
+                `)
                 .eq('player_id', this.currentUser.id);
 
-            if (error) throw error;
+            if (error) {
+                // If JOIN fails (no foreign key), fallback to simple query
+                console.warn('⚠️ Foreign key relationship missing, using fallback query');
+                console.error('Join error:', error);
+                const fallback = await this.supabase
+                    .from('placed_plants')
+                    .select('*')
+                    .eq('player_id', this.currentUser.id);
+                
+                if (fallback.error) throw fallback.error;
+                console.log('🌱 Loaded placed plants (fallback):', fallback.data.length);
+                return fallback.data;
+            }
 
             console.log('🌱 Loaded placed plants:', data.length);
+            console.log('🔍 Sample plant data structure:', data[0]);
             return data;
         } catch (error) {
             console.error('❌ Failed to get placed plants:', error);

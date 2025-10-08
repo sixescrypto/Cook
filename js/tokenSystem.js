@@ -14,6 +14,11 @@ class TokenSystem {
         this.startPriceTracking();
         this.simulateGlobalActivity();
         this.fetchPlayerCount(); // Fetch real player count on init
+        
+        // Fetch player count every 5 minutes instead of every price update
+        setInterval(() => {
+            this.fetchPlayerCount();
+        }, 5 * 60 * 1000); // Every 5 minutes
     }
     
     // Fetch real player count from database
@@ -97,8 +102,8 @@ class TokenSystem {
             
             this.globalDistributed += globalGeneration;
             
-            // Fetch updated player count from database instead of simulating
-            this.fetchPlayerCount();
+            // Player count is now fetched every 5 minutes (in init method)
+            // No need to fetch it on every price update
         }, CONFIG.UPDATE_INTERVALS.PRICE_UPDATE);
     }
     

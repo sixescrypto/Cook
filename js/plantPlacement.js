@@ -100,21 +100,68 @@ class PlantPlacement {
     updatePreviewImage() {
         const img = this.previewElement.querySelector('.plant-preview-image');
         img.src = this.plantImage;
+        
+        console.log(`🖼️ Preview image src set to: ${img.src}`);
+        
+        // Adjust preview size for joint
+        if (this.currentItemId === 'joint') {
+            img.style.width = '65%';
+            img.style.margin = '0 auto';
+            img.style.display = 'block';
+            img.style.minHeight = '50px'; // Ensure visibility for testing
+            console.log('🔧 Applied joint preview styling: 65% width, centered, minHeight 50px');
+        } else {
+            img.style.width = '100%';
+            img.style.margin = '';
+            img.style.display = '';
+            img.style.minHeight = '';
+        }
     }
     
     // Show preview at tile position
     showPreview(tile) {
-        if (!this.placementEnabled) return;
+        if (!this.placementEnabled) {
+            console.log('⚠️ Placement not enabled, cannot show preview');
+            return;
+        }
+        
+        console.log(`👻 Showing preview for ${this.currentItemId} at tile`, {
+            plantImage: this.plantImage,
+            tilePosition: { left: tile.style.left, top: tile.style.top }
+        });
         
         const img = this.previewElement.querySelector('.plant-preview-image');
         img.src = this.plantImage;
         
+        // Adjust preview size for joint
+        if (this.currentItemId === 'joint') {
+            img.style.width = '65%';
+            img.style.margin = '0 auto';
+            img.style.display = 'block';
+        } else {
+            img.style.width = '100%';
+            img.style.margin = '';
+            img.style.display = '';
+        }
+        
         // Scale preview to match placed plant size
         this.previewElement.style.width = `${this.gridSystem.tileWidth}px`;
+        this.previewElement.style.height = 'auto';
         
         this.previewElement.style.left = tile.style.left;
         this.previewElement.style.top = tile.style.top;
+        
+        // Apply position adjustment for joint preview to match placed position
+        if (this.currentItemId === 'joint') {
+            const adjustmentScale = this.gridSystem.tileWidth / 144;
+            const currentTop = parseFloat(this.previewElement.style.top);
+            const adjustment = 20 * adjustmentScale;
+            this.previewElement.style.top = (currentTop + adjustment) + 'px';
+        }
+        
         this.previewElement.style.display = 'block';
+        this.previewElement.style.zIndex = '150';
+        this.previewElement.style.opacity = '0.5';
     }
     
     // Hide preview
@@ -265,8 +312,19 @@ class PlantPlacement {
         const img = document.createElement('img');
         img.src = this.plantImage;
         img.alt = 'Plant';
-        img.style.width = '100%';
-        img.style.height = 'auto';
+        
+        // Adjust size for specific items
+        if (itemId === 'joint') {
+            // Make joint slightly smaller but visible (65% size)
+            img.style.width = '65%';
+            img.style.height = 'auto';
+            img.style.margin = '0 auto';
+            img.style.display = 'block';
+        } else {
+            img.style.width = '100%';
+            img.style.height = 'auto';
+        }
+        
         img.style.imageRendering = 'pixelated';
         img.style.imageRendering = '-moz-crisp-edges';
         img.style.imageRendering = 'crisp-edges';
@@ -290,6 +348,13 @@ class PlantPlacement {
         // Apply item-specific position adjustments (scaled to tile size)
         // Base adjustment is 15px at 144px tile width, scales proportionally
         const adjustmentScale = this.gridSystem.tileWidth / 144;
+        
+        if (itemId === 'joint') {
+            // Push joint down to sit on the ground/tile
+            const currentTop = parseFloat(plant.style.top);
+            const adjustment = 20 * adjustmentScale; // Push down 20px (scaled)
+            plant.style.top = (currentTop + adjustment) + 'px';
+        }
         
         if (itemId === 'mini-mary') {
             // Lift mini-mary up for better centering (scales with tile size)
@@ -485,6 +550,9 @@ class PlantPlacement {
         // Check if this is a radio
         const isRadio = plantData.itemId === 'radio';
         
+        // Check if this is a joint
+        const isJoint = plantData.itemId === 'joint';
+        
         // Build HTML content
         let radioControls = '';
         if (isRadio) {
@@ -511,6 +579,17 @@ class PlantPlacement {
             `;
         }
         
+        let jointControls = '';
+        if (isJoint) {
+            jointControls = `
+                <div class="joint-controls">
+                    <button class="joint-spark-btn" id="jointSparkBtn">
+                        Spark up
+                    </button>
+                </div>
+            `;
+        }
+        
         // Add content with close button
         infoPanel.innerHTML = `
             <button class="info-close-btn" id="closeInfoBtn">✕</button>
@@ -521,6 +600,7 @@ class PlantPlacement {
                 <span class="reward-value">${plantData.rewardRate}</span>
             </div>
             ${radioControls}
+            ${jointControls}
         `;
         
         // Append to room-view container
@@ -532,6 +612,11 @@ class PlantPlacement {
         // Add radio controls handlers if this is a radio
         if (isRadio) {
             this.initRadioControls(row, col, plantData.element);
+        }
+        
+        // Add joint controls handlers if this is a joint
+        if (isJoint) {
+            this.initJointControls(row, col, plantData.element);
         }
         
         // Add rotate and move buttons for ALL items
@@ -651,6 +736,7 @@ class PlantPlacement {
         if (!plantData) return;
         
         console.log(`🔄 Starting move for ${plantData.itemId} from [${row}, ${col}]`);
+        console.log(`🔍 Plant data:`, plantData);
         
         // Stop earning animation for this item
         if (plantData.earningInterval) {
@@ -658,10 +744,24 @@ class PlantPlacement {
             plantData.earningInterval = null;
         }
         
-        // Get the item's image path from ITEMS_CONFIG
-        const itemConfig = ITEMS_CONFIG.find(item => item.id === plantData.itemId);
-        if (itemConfig) {
-            this.plantImage = itemConfig.image;
+        // Get the item's image path - prefer database, fallback to ITEMS_CONFIG
+        let imagePath;
+        if (plantData.items && plantData.items.image_url) {
+            // Use database image if available
+            imagePath = plantData.items.image_url;
+            console.log(`📷 Using database image for move: ${imagePath}`);
+        } else {
+            // Fallback to ITEMS_CONFIG
+            const itemConfig = ITEMS_CONFIG.find(item => item.id === plantData.itemId);
+            if (itemConfig) {
+                imagePath = itemConfig.image;
+                console.log(`⚠️ Using ITEMS_CONFIG fallback for move: ${imagePath}`);
+            }
+        }
+        
+        if (imagePath) {
+            this.plantImage = imagePath;
+            this.currentItemId = plantData.itemId; // Set current item ID for proper sizing
         }
         
         // Capture radio state if moving a radio - always turn it off when moving
@@ -1014,6 +1114,130 @@ class PlantPlacement {
         return { intervals: [], nodes: [], audio: audio }; // Return audio element for cleanup
     }
     
+    // Initialize joint controls (spark up/put out button with smoke animation)
+    initJointControls(row, col, jointElement) {
+        // Initialize joint states object if it doesn't exist
+        if (!this.jointStates) {
+            this.jointStates = {};
+        }
+        
+        const key = `${row}-${col}`;
+        
+        // Create state if it doesn't exist
+        if (!this.jointStates[key]) {
+            this.jointStates[key] = {
+                isLit: false,
+                element: jointElement,
+                smokeInterval: null
+            };
+        }
+        
+        const state = this.jointStates[key];
+        state.element = jointElement; // Update element reference
+        
+        const sparkBtn = document.getElementById('jointSparkBtn');
+        if (!sparkBtn) return;
+        
+        // Restore button state
+        if (state.isLit) {
+            sparkBtn.innerHTML = 'Put out';
+            sparkBtn.classList.add('lit');
+        }
+        
+        // Spark up / Put out button toggle
+        sparkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.isLit = !state.isLit;
+            
+            if (state.isLit) {
+                sparkBtn.innerHTML = 'Put out';
+                sparkBtn.classList.add('lit');
+                console.log('🔥 Joint sparked up!');
+                
+                // Add smoking animation to joint element
+                if (state.element) {
+                    state.element.classList.add('joint-smoking');
+                }
+                
+                // Start smoke animation
+                this.startSmokeAnimation(state.element);
+            } else {
+                sparkBtn.innerHTML = 'Spark up';
+                sparkBtn.classList.remove('lit');
+                console.log('💨 Joint put out');
+                
+                // Remove smoking animation from joint element
+                if (state.element) {
+                    state.element.classList.remove('joint-smoking');
+                }
+                
+                // Stop smoke animation
+                this.stopSmokeAnimation(state.element);
+            }
+        });
+    }
+    
+    // Start smoke animation from joint
+    startSmokeAnimation(jointElement) {
+        if (!jointElement) return;
+        
+        // Create smoke particles
+        const createSmokeParticle = () => {
+            const smoke = document.createElement('div');
+            smoke.className = 'smoke-particle';
+            
+            // Position at the center of the joint
+            const rect = jointElement.getBoundingClientRect();
+            const containerRect = document.querySelector('.room-view').getBoundingClientRect();
+            
+            // Add random offset for more natural smoke
+            const randomX = (Math.random() - 0.5) * 10;
+            const randomY = (Math.random() - 0.5) * 5;
+            
+            // Center horizontally and vertically with random variation
+            smoke.style.left = (rect.left - containerRect.left + rect.width * 0.5 + randomX) + 'px';
+            smoke.style.top = (rect.top - containerRect.top + rect.height * 0.5 + randomY) + 'px';
+            
+            // Randomize particle size slightly
+            const size = 15 + Math.random() * 10; // 15-25px
+            smoke.style.width = size + 'px';
+            smoke.style.height = size + 'px';
+            
+            // Randomize animation duration for more organic movement
+            smoke.style.animationDuration = (5.5 + Math.random() * 1) + 's'; // 5.5-6.5s
+            
+            document.querySelector('.room-view').appendChild(smoke);
+            
+            // Remove particle after animation completes
+            setTimeout(() => {
+                smoke.remove();
+            }, 4000);
+        };
+        
+        // Create particles more frequently for continuous stream
+        const interval = setInterval(createSmokeParticle, 150);
+        jointElement.dataset.smokeInterval = interval;
+        
+        // Create initial particle
+        createSmokeParticle();
+    }
+    
+    // Stop smoke animation
+    stopSmokeAnimation(jointElement) {
+        if (!jointElement) return;
+        
+        const interval = jointElement.dataset.smokeInterval;
+        if (interval) {
+            clearInterval(interval);
+            delete jointElement.dataset.smokeInterval;
+        }
+        
+        // Remove any existing smoke particles
+        document.querySelectorAll('.smoke-particle').forEach(particle => {
+            particle.remove();
+        });
+    }
+    
     // Remove a plant from a tile
     removePlant(row, col) {
         const plantIndex = this.plants.findIndex(p => p.row === row && p.col === col);
@@ -1036,6 +1260,14 @@ class PlantPlacement {
             this.stopRadioAudio(this.radioStates[radioKey].audioData);
             delete this.radioStates[radioKey];
             console.log(`📻 Radio state cleaned up for [${row}, ${col}]`);
+        }
+        
+        // If this is a joint, stop smoke animation and clean up state
+        const jointKey = `${row}-${col}`;
+        if (this.jointStates && this.jointStates[jointKey]) {
+            this.stopSmokeAnimation(this.jointStates[jointKey].element);
+            delete this.jointStates[jointKey];
+            console.log(`🔥 Joint state cleaned up for [${row}, ${col}]`);
         }
         
         plant.element.remove();
@@ -1123,19 +1355,44 @@ class PlantPlacement {
         // Set plant container size to match tile size (scales with resolution)
         plant.style.width = `${this.gridSystem.tileWidth}px`;
         
-        // Get item image from ITEMS_CONFIG (not inventory, since placed items may have 0 count)
+        // Get item image from database (via items JOIN), fallback to ITEMS_CONFIG
         let imageSrc = this.plantImage;
-        const itemConfig = ITEMS_CONFIG.find(config => config.id === itemId);
-        if (itemConfig) {
-            imageSrc = itemConfig.image;
+        
+        // Debug logging
+        console.log(`🔍 Checking items data for ${itemId}:`, {
+            hasItems: !!plantData.items,
+            items: plantData.items,
+            hasImageUrl: plantData.items?.image_url
+        });
+        
+        if (plantData.items && plantData.items.image_url) {
+            // Use image_url from database (preferred)
+            imageSrc = plantData.items.image_url;
+            console.log(`📷 Using database image for ${itemId}: ${imageSrc}`);
         } else {
-            console.warn(`⚠️ Item config not found for ${itemId}, using default plant image`);
+            // Fallback to ITEMS_CONFIG for backward compatibility
+            const itemConfig = ITEMS_CONFIG.find(config => config.id === itemId);
+            if (itemConfig) {
+                imageSrc = itemConfig.image;
+                console.warn(`⚠️ Using ITEMS_CONFIG fallback for ${itemId} (database image_url not found)`);
+            } else {
+                console.warn(`⚠️ Item config not found for ${itemId}, using default plant image`);
+            }
         }
         
         const img = document.createElement('img');
         img.src = imageSrc;
         img.alt = 'Plant';
-        img.style.width = '100%';
+        
+        // Adjust size for joint (65% size)
+        if (itemId === 'joint') {
+            img.style.width = '65%';
+            img.style.margin = '0 auto';
+            img.style.display = 'block';
+        } else {
+            img.style.width = '100%';
+        }
+        
         img.style.height = 'auto';
         img.style.imageRendering = 'pixelated';
         img.style.imageRendering = '-moz-crisp-edges';
@@ -1159,6 +1416,13 @@ class PlantPlacement {
         // Apply item-specific position adjustments (scaled to tile size)
         // Base adjustment is 15px at 144px tile width, scales proportionally
         const adjustmentScale = this.gridSystem.tileWidth / 144;
+        
+        if (itemId === 'joint') {
+            // Push joint down to sit on the ground/tile
+            const currentTop = parseFloat(plant.style.top);
+            const adjustment = 20 * adjustmentScale; // Push down 20px (scaled)
+            plant.style.top = (currentTop + adjustment) + 'px';
+        }
         
         if (itemId === 'mini-mary') {
             // Lift mini-mary up for better centering (scales with tile size)
@@ -1194,7 +1458,8 @@ class PlantPlacement {
             rewardRate: rewardRate,
             earningInterval: null,
             rotation: rotation || 0, // Restore saved rotation
-            serverPlantId: serverPlantId || null // Restore server ID if available
+            serverPlantId: serverPlantId || null, // Restore server ID if available
+            items: plantData.items || null // Store items data from database for move operations
         });
         
         // Start earning animation
@@ -1205,6 +1470,16 @@ class PlantPlacement {
             e.stopPropagation();
             this.showPlantInfo(row, col);
         });
+        
+        // Restore joint lit state if it was lit before resize
+        if (itemId === 'joint') {
+            const jointKey = `${row}-${col}`;
+            if (this.jointStates && this.jointStates[jointKey] && this.jointStates[jointKey].isLit) {
+                console.log(`🔥 Restoring joint lit state at [${row}, ${col}]`);
+                plant.classList.add('joint-smoking');
+                this.startSmokeAnimation(plant);
+            }
+        }
         
         console.log(`✅ Plant restored at [${row}, ${col}]${rotation ? ` (rotation: ${rotation})` : ''}`);
     }

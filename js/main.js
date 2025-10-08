@@ -352,7 +352,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         itemDescription: itemConfig ? itemConfig.description : '',
                         rewardRate: serverPlant.reward_rate,
                         rotation: serverPlant.rotation || 0,
-                        serverPlantId: serverPlant.id
+                        serverPlantId: serverPlant.id,
+                        items: serverPlant.items // Pass through items data from JOIN query
                     };
                     plantPlacement.restorePlant(plantData);
                 });

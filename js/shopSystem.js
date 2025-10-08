@@ -36,6 +36,7 @@ class ShopSystem {
             const { data, error } = await this.supabaseClient.supabase
                 .from('items')
                 .select('*')
+                .neq('id', 'joint') // Exclude joint (it's free/given automatically)
                 .order('sort_order', { ascending: true });
             
             if (error) throw error;

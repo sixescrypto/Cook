@@ -823,7 +823,7 @@ body::after {
     height: auto;
     pointer-events: none;
     z-index: 150;
-    transform: translateY(-50%);
+    transform: translateY(-50%); /* Center vertically on tile */
     opacity: 0.5;
     filter: brightness(1.2);
 }
@@ -1130,6 +1130,92 @@ body::after {
 .now-playing span {
     color: #00ff41;
     font-weight: bold;
+}
+
+/* Joint Controls */
+.joint-controls {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #2a2f38;
+}
+
+.joint-spark-btn {
+    width: 100%;
+    padding: 10px;
+    background: #0f1419;
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.joint-spark-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.joint-spark-btn.lit {
+    background: rgba(0, 255, 65, 0.1);
+    border-color: #00ff41;
+    color: #00ff41;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(255, 107, 53, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(255, 107, 53, 0.8);
+    }
+}
+
+/* Smoke Particle Animation */
+.smoke-particle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(140, 140, 140, 0.6) 0%, rgba(100, 100, 100, 0.4) 30%, rgba(80, 80, 80, 0.2) 60%, transparent 100%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 200;
+    animation: smoke-rise 6s ease-out forwards;
+    filter: blur(3px);
+}
+
+@keyframes smoke-rise {
+    0% {
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+        opacity: 0.8;
+    }
+    30% {
+        transform: translate(-8px, -100px) scale(1.2) rotate(-10deg);
+        opacity: 0.6;
+    }
+    60% {
+        transform: translate(12px, -200px) scale(1.8) rotate(15deg);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translate(-5px, -300px) scale(2.5) rotate(-5deg);
+        opacity: 0;
+    }
+}
+
+/* Joint smoking animation */
+.joint-smoking {
+    animation: joint-glow 4s ease-in-out infinite;
+}
+
+@keyframes joint-glow {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.3) drop-shadow(0 0 5px rgba(255, 107, 53, 0.5));
+    }
 }
 
 @keyframes slideInRight {

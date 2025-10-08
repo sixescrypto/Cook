@@ -10,6 +10,14 @@
 
 const ITEMS_CONFIG = [
     {
+        id: 'joint',
+        name: 'Joint',
+        description: 'Have the first one on us..',
+        image: 'assets/sprites/joint.png', // TODO: Add joint.png to assets/sprites folder
+        type: 'placeable',
+        rewardRate: '0 BUD/min'
+    },
+    {
         id: 'sprout',
         name: 'Sprout',
         description: 'The potential to grow into something bigger..',

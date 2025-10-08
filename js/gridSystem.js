@@ -181,7 +181,8 @@ class GridSystem {
                                     itemDescription: itemConfig ? itemConfig.description : '',
                                     rewardRate: serverPlant.reward_rate,
                                     rotation: serverPlant.rotation || 0,
-                                    serverPlantId: serverPlant.id
+                                    serverPlantId: serverPlant.id,
+                                    items: serverPlant.items // Pass through items data from JOIN query
                                 };
                                 window.plantPlacement.restorePlant(plantData);
                             });
@@ -330,8 +331,13 @@ class GridSystem {
     
     // Handle tile hover
     handleTileHover(row, col) {
-        // Optional: Show tile coordinates or info
-        // console.log(`Hovering: [${row}, ${col}]`);
+        // Show plant preview if placement is enabled
+        if (window.plantPlacement && window.plantPlacement.placementEnabled) {
+            const tile = this.getTile(row, col);
+            if (tile) {
+                window.plantPlacement.showPreview(tile.element);
+            }
+        }
     }
     
     // Get tile at position
