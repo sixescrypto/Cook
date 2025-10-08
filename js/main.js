@@ -177,8 +177,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     let playerId = localStorage.getItem('playerId');
     let walletAddress = localStorage.getItem('walletAddress');
     
-    if (!walletAddress) {
-        // Generate a temporary wallet for testing
+    // Check if authenticated through new auth system
+    const authenticatedUsername = localStorage.getItem('herbone_username');
+    const authenticatedWallet = localStorage.getItem('herbone_wallet');
+    
+    if (authenticatedUsername && authenticatedWallet) {
+        // User authenticated through invite code system
+        walletAddress = authenticatedWallet;
+        localStorage.setItem('walletAddress', walletAddress);
+        console.log('🔐 Authenticated user:', authenticatedUsername);
+    } else if (!walletAddress) {
+        // Legacy: Generate a temporary wallet for testing (will be replaced by auth system)
+        console.log('⚠️ No authentication - auth system should have blocked this');
         walletAddress = 'local-player-' + Math.random().toString(36).substring(2, 15);
         localStorage.setItem('walletAddress', walletAddress);
         console.log('🆔 Generated test wallet:', walletAddress);
@@ -186,14 +196,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (supabaseInitialized) {
         try {
-            const player = await window.supabaseClient.authenticateWallet(walletAddress);
-            if (player) {
-                playerId = player.id;
-                localStorage.setItem('playerId', playerId);
-                console.log('✅ Player authenticated:', player);
+            // If authenticated through invite system, look up by username
+            if (authenticatedUsername) {
+                const { data: player, error } = await window.supabaseClient.supabase
+                    .from('players')
+                    .select('*')
+                    .eq('username', authenticatedUsername)
+                    .single();
                 
-                // Store player reference globally
-                window.currentPlayer = player;
+                if (player) {
+                    playerId = player.id;
+                    localStorage.setItem('playerId', playerId);
+                    console.log('✅ Player loaded:', player);
+                    window.currentPlayer = player;
+                    window.supabaseClient.currentUser = player;
+                } else {
+                    console.error('❌ Player not found for username:', authenticatedUsername);
+                }
+            } else {
+                // Legacy wallet authentication
+                const player = await window.supabaseClient.authenticateWallet(walletAddress);
+                if (player) {
+                    playerId = player.id;
+                    localStorage.setItem('playerId', playerId);
+                    console.log('✅ Player authenticated:', player);
+                    window.currentPlayer = player;
+                }
             }
         } catch (error) {
             console.error('❌ Failed to authenticate player:', error);
@@ -372,6 +400,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Note: localStorage is ONLY used as offline cache (write-only)
     // All data is loaded from Supabase server (100% cheat-proof)
     // Server is the ONLY source of truth when online
+    
+    // Load and display player's referral code
+    loadReferralCodeDisplay();
     
     // Setup tab switching
     setupTabs();
@@ -605,4 +636,77 @@ function setupTabs() {
     });
     
     console.log('✅ Tab system initialized');
+}
+
+// Load and display player's referral code
+async function loadReferralCodeDisplay() {
+    const referralCodeDisplay = document.getElementById('referralCodeDisplay');
+    const referralCodeText = document.getElementById('referralCodeText');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    
+    if (!referralCodeDisplay || !referralCodeText || !copyCodeBtn) {
+        console.warn('⚠️ Referral code UI elements not found');
+        return;
+    }
+    
+    // Try to get from localStorage first (quick display)
+    let playerCode = localStorage.getItem('herbone_referral_code');
+    
+    // If not in localStorage, fetch from database
+    if (!playerCode && window.currentPlayer && window.supabaseClient) {
+        try {
+            // Try to get username from localStorage or player object
+            const username = localStorage.getItem('herbone_username') || window.currentPlayer.username;
+            
+            if (username) {
+                const { data, error } = await window.supabaseClient.supabase
+                    .from('invite_codes')
+                    .select('code')
+                    .eq('owner_username', username)
+                    .single();
+                
+                if (data && data.code) {
+                    playerCode = data.code;
+                    localStorage.setItem('herbone_referral_code', playerCode);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to load referral code:', error);
+        }
+    }
+    
+    if (playerCode) {
+        referralCodeText.textContent = playerCode;
+        referralCodeDisplay.style.display = 'flex';
+        
+        // Copy to clipboard functionality
+        copyCodeBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(playerCode);
+                copyCodeBtn.textContent = '✓';
+                copyCodeBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyCodeBtn.textContent = '📋';
+                    copyCodeBtn.classList.remove('copied');
+                }, 2000);
+            } catch (error) {
+                console.error('❌ Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = playerCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyCodeBtn.textContent = '✓';
+                setTimeout(() => {
+                    copyCodeBtn.textContent = '📋';
+                }, 2000);
+            }
+        });
+    } else {
+        console.log('ℹ️ No referral code found for player');
+    }
 }

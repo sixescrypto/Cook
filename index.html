@@ -4,14 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GROW - Weed Plant Growing Game</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.6">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Invite Code Overlay -->
+    <div class="auth-overlay" id="inviteCodeOverlay">
+        <div class="auth-container">
+            <h1 class="auth-title">GOT AN INVITE CODE?</h1>
+            <p class="auth-subtitle">GROW is an exclusive, invite-only network.</p>
+            
+            <div class="code-inputs">
+                <input type="text" class="code-input" maxlength="1" data-index="0">
+                <input type="text" class="code-input" maxlength="1" data-index="1">
+                <input type="text" class="code-input" maxlength="1" data-index="2">
+                <input type="text" class="code-input" maxlength="1" data-index="3">
+                <input type="text" class="code-input" maxlength="1" data-index="4">
+            </div>
+            
+            <div class="error-message" id="codeErrorMessage"></div>
+            
+            <button class="auth-btn proceed-btn" id="proceedBtn">PROCEED</button>
+            <button class="auth-btn secondary-btn" id="getCodeBtn">WANT TO GET CODE?</button>
+        </div>
+    </div>
+
+    <!-- Username & Wallet Overlay -->
+    <div class="auth-overlay" id="registrationOverlay" style="display: none;">
+        <div class="auth-container">
+            <h1 class="auth-title">WELCOME TO GROW</h1>
+            <p class="auth-subtitle">Create your account to start growing.</p>
+            
+            <div class="registration-form">
+                <div class="form-group">
+                    <label for="usernameInput">USERNAME</label>
+                    <input type="text" id="usernameInput" class="auth-input" placeholder="Enter username" maxlength="20">
+                </div>
+                
+                <div class="form-group">
+                    <label for="walletInput">SOLANA WALLET ADDRESS</label>
+                    <input type="text" id="walletInput" class="auth-input" placeholder="Enter wallet address">
+                </div>
+            </div>
+            
+            <div class="error-message" id="registrationErrorMessage"></div>
+            
+            <button class="auth-btn proceed-btn" id="confirmRegistrationBtn">CONFIRM</button>
+        </div>
+    </div>
+
     <!-- Buy Button -->
     <a href="#" class="buy-button" id="buyButton">BUY $BUD</a>
+    
+    <!-- Referral Code Display -->
+    <div class="referral-code-display" id="referralCodeDisplay" style="display: none;">
+        <div class="referral-label">YOUR CODE:</div>
+        <div class="referral-code" id="referralCodeText">LOADING...</div>
+        <button class="copy-code-btn" id="copyCodeBtn" title="Copy to clipboard">📋</button>
+    </div>
     
     <div class="game-container">
         <!-- Header with title -->
@@ -86,7 +138,8 @@
                     
                     <!-- Equip Button (hidden by default) -->
                     <div class="equip-panel" id="equipPanel" style="display: none;">
-                        <button class="equip-close-btn" id="equipCloseBtn" aria-label="Close">&times;</button>                        <div class="equip-item-details">
+                        <button class="equip-close-btn" id="equipCloseBtn" aria-label="Close">&times;</button>
+                        <div class="equip-item-details">
                             <img src="" alt="" class="equip-item-preview" id="equipItemPreview">
                             <div class="equip-item-name" id="equipItemName">Item Name</div>
                         </div>
@@ -164,7 +217,7 @@
                 BUD GARDEN v1.0 | CONNECTED TO PUMPFUN
             </div>
         </footer>
-    </div>
+        </div>
 
     <!-- Customization Modal -->
     <div class="customize-modal" id="customizeModal" style="display: none;">
@@ -187,19 +240,20 @@
     <!-- JavaScript files -->
     <script src="js/config.js"></script>
     <script src="js/config/supabase.config.js"></script>
-    <script src="js/supabaseClient.js"></script>
+        <script src="js/supabaseClient.js?v=1.7"></script>
+    <script src="js/authSystem.js?v=1.0"></script>
     <script src="js/sounds/soundEffects.js"></script>
     <script src="js/itemsConfig.js"></script>
     <script src="js/gameState.js"></script>
     <script src="js/plantSystem.js"></script>
-    <script src="js/tokenSystem.js"></script>
-    <script src="js/gridSystem.js"></script>
-    <script src="js/gridAligner.js"></script>
-    <script src="js/plantPlacement.js"></script>
-    <script src="js/inventorySystem.js"></script>
-    <script src="js/shopSystem.js"></script>
-    <script src="js/roomCustomizer.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/tokenSystem.js?v=1.1"></script>
+    <script src="js/gridSystem.js?v=1.3"></script>
+    <script src="js/gridAligner.js?v=1.1"></script>
+    <script src="js/plantPlacement.js?v=1.1"></script>
+    <script src="js/inventorySystem.js?v=1.2"></script>
+    <script src="js/shopSystem.js?v=3.7"></script>
+    <script src="js/roomCustomizer.js?v=1.1"></script>
+    <script src="js/ui.js?v=1.3"></script>
+    <script src="js/main.js?v=1.2"></script>
 </body>
 </html>

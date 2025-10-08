@@ -356,6 +356,13 @@ class SupabaseClient {
             if (error) throw error;
 
             console.log('✅ BUD harvested:', data);
+            
+            // Pay 2% referral earnings if applicable
+            if (data && data.claimed > 0) {
+                this.payReferralEarnings(this.currentUser.id, data.claimed)
+                    .catch(err => console.warn('⚠️ Referral payout failed:', err));
+            }
+            
             return data;
         } catch (error) {
             console.error('❌ Failed to harvest BUD:', error);
@@ -384,7 +391,89 @@ class SupabaseClient {
             return 0;
         }
     }
+    
+    // Pay 2% referral earnings to referrer when referred player earns BUD
+    async payReferralEarnings(playerId, budEarned) {
+        try {
+            // Get player's referral info (playerId is actually the UUID)
+            const { data: player, error: playerError } = await this.supabase
+                .from('players')
+                .select('referred_by, referral_code, username')
+                .eq('id', playerId)
+                .single();
+            
+            if (playerError || !player || !player.referred_by || player.referred_by === 'SYSTEM') {
+                // No referrer or system referral, skip payout
+                return { success: false, reason: 'no_referrer' };
+            }
+            
+            const referrerUsername = player.referred_by;
+            const referralCode = player.referral_code;
+            const referralEarnings = Math.floor(budEarned * 0.02); // 2% of earnings
+            
+            if (referralEarnings <= 0) {
+                return { success: false, reason: 'too_small' };
+            }
+            
+            console.log(`💰 Paying ${referralEarnings} BUD (2%) to referrer:`, referrerUsername);
+            
+            // Add BUD to referrer's balance (lookup by username, not id)
+            const { data: referrer, error: referrerError } = await this.supabase
+                .from('players')
+                .select('total_bud, accumulated_bud')
+                .eq('username', referrerUsername)
+                .single();
+            
+            if (referrerError || !referrer) {
+                console.error('❌ Referrer not found:', referrerUsername);
+                return { success: false, reason: 'referrer_not_found' };
+            }
+            
+            // Update referrer's BUD balance (update by username, not id)
+            const { error: updateError } = await this.supabase
+                .from('players')
+                .update({
+                    total_bud: (referrer.total_bud || 0) + referralEarnings,
+                    accumulated_bud: (referrer.accumulated_bud || 0) + referralEarnings
+                })
+                .eq('username', referrerUsername);
+            
+            if (updateError) {
+                console.error('❌ Failed to update referrer balance:', updateError);
+                return { success: false, reason: 'update_failed' };
+            }
+            
+            // Update referral code earnings
+            const { data: codeData } = await this.supabase
+                .from('invite_codes')
+                .select('total_referral_earnings')
+                .eq('code', referralCode)
+                .single();
+            
+            if (codeData) {
+                await this.supabase
+                    .from('invite_codes')
+                    .update({
+                        total_referral_earnings: (codeData.total_referral_earnings || 0) + referralEarnings
+                    })
+                    .eq('code', referralCode);
+            }
+            
+            console.log(`✅ Paid ${referralEarnings} BUD to ${referrerUsername} (referral earnings)`);
+            
+            return {
+                success: true,
+                referrer: referrerUsername,
+                amount: referralEarnings
+            };
+            
+        } catch (error) {
+            console.error('❌ Failed to pay referral earnings:', error);
+            return { success: false, reason: 'error', error };
+        }
+    }
 }
 
 // Create global instance
 window.supabaseClient = new SupabaseClient();
+

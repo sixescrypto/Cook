@@ -1357,6 +1357,17 @@ class PlantPlacement {
             // Add to player's BUD
             this.gameState.player.accumulatedBUD += totalGenerated;
             
+            // Pay 2% to referrer if player was referred
+            if (window.supabaseClient && window.currentPlayer && window.currentPlayer.id) {
+                window.supabaseClient.payReferralEarnings(
+                    window.currentPlayer.id,
+                    totalGenerated
+                ).catch(err => {
+                    // Silent fail - don't interrupt game if referral payout fails
+                    console.warn('⚠️ Referral payout failed:', err);
+                });
+            }
+            
             // Update UI
             if (window.uiSystem) {
                 window.uiSystem.updateBUDCounter();
