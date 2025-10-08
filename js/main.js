@@ -186,12 +186,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         walletAddress = authenticatedWallet;
         localStorage.setItem('walletAddress', walletAddress);
         console.log('🔐 Authenticated user:', authenticatedUsername);
-    } else if (!walletAddress) {
-        // Legacy: Generate a temporary wallet for testing (will be replaced by auth system)
-        console.log('⚠️ No authentication - auth system should have blocked this');
-        walletAddress = 'local-player-' + Math.random().toString(36).substring(2, 15);
-        localStorage.setItem('walletAddress', walletAddress);
-        console.log('🆔 Generated test wallet:', walletAddress);
+    } else {
+        // No authentication - auth system will handle this
+        // DO NOT create a legacy player - wait for proper registration
+        console.log('⚠️ No authentication - waiting for user registration');
+        return; // Exit early - don't initialize game without auth
     }
     
     if (supabaseInitialized) {
