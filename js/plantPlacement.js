@@ -1,4 +1,10 @@
-// Plant Placement System - Handles placing plants on grid tiles
+// Plant Placement System v11.0 - Handles placing plants on grid tiles
+// SECURITY: Demo mode removed - requires real blockchain payments only
+// SECURITY: Payment signature tracking prevents payment reuse
+// UI: Enhanced wallet input styling to match game theme
+// UX: Manual payment verification only - no automatic checking
+// UX: Updated payment status with orange color and clearer messaging
+// UI: Red styling for payment cancel button and error messages
 class PlantPlacement {
     constructor(gridSystem) {
         this.gridSystem = gridSystem;
@@ -171,18 +177,18 @@ class PlantPlacement {
     
     // Setup click handlers for placing plants
     setupClickHandlers() {
-        this.gridSystem.tiles.forEach(tileData => {
-            // Click handler
+        this.gridSystem.tiles.forEach((tileData, index) => {
+            // Desktop click handler
             tileData.element.addEventListener('click', (e) => {
                 e.stopPropagation();
+                console.log('�️ Desktop click on tile:', tileData.row, tileData.col);
                 
-                // Only place if placement mode is enabled
                 if (this.placementEnabled) {
                     this.placePlant(tileData.row, tileData.col);
                 }
             });
             
-            // Hover handlers for preview
+            // Desktop hover handlers for preview
             tileData.element.addEventListener('mouseenter', () => {
                 if (this.placementEnabled) {
                     this.showPreview(tileData.element);
@@ -192,6 +198,50 @@ class PlantPlacement {
             tileData.element.addEventListener('mouseleave', () => {
                 if (this.placementEnabled) {
                     this.hidePreview();
+                }
+            });
+
+            // Mobile touch handlers
+            let touchStartTime = 0;
+            
+            tileData.element.addEventListener('touchstart', (e) => {
+                touchStartTime = Date.now();
+                
+                if (this.placementEnabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showPreview(tileData.element);
+                    tileData.element.classList.add('touch-active');
+                }
+            });
+            
+            tileData.element.addEventListener('touchend', (e) => {
+                const touchDuration = Date.now() - touchStartTime;
+                
+                if (this.placementEnabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    tileData.element.classList.remove('touch-active');
+                    
+                    // Only place if it was a short tap (not a drag)
+                    if (touchDuration < 500) {
+                        try {
+                            this.placePlant(tileData.row, tileData.col);
+                        } catch (error) {
+                            console.error('❌ Error calling placePlant:', error);
+                        }
+                    }
+                    
+                    this.hidePreview();
+                }
+            });
+            
+            // Handle touch move to remove feedback if user drags away
+            tileData.element.addEventListener('touchmove', (e) => {
+                if (this.placementEnabled) {
+                    e.preventDefault();
+                    tileData.element.classList.remove('touch-active');
                 }
             });
         });
@@ -220,13 +270,17 @@ class PlantPlacement {
         
         if (!tile) {
             console.warn(`Tile [${row}, ${col}] not found`);
+            showErrorNotification('Tile not found: ' + row + ',' + col);
             return;
         }
         
         if (tile.occupied) {
             console.warn(`Tile [${row}, ${col}] is already occupied`);
+            showErrorNotification('Tile occupied: ' + row + ',' + col);
             return;
         }
+        
+        console.log('✅ Tile checks passed, proceeding with placement...');
         
         // Check if we're moving an existing item or placing a new one
         const isMoving = this.movingItem !== null;
@@ -291,11 +345,26 @@ class PlantPlacement {
             
             // Consume item from inventory (only for new placements)
             if (this.inventorySystem && itemId) {
+                console.log('📱 Attempting to consume item:', itemId);
+                console.log('📱 Inventory system:', !!this.inventorySystem);
+                
                 const consumed = this.inventorySystem.consumeItem(itemId);
+                console.log('📱 Item consumption result:', consumed);
+                
                 if (!consumed) {
                     console.warn('Failed to consume item - placement cancelled');
+                    showErrorNotification('Failed to consume item: ' + itemId);
                     return;
+                } else {
+                    console.log('✅ Item consumed successfully');
                 }
+            } else {
+                console.warn('📱 No inventory system or itemId:', {
+                    inventorySystem: !!this.inventorySystem,
+                    itemId: itemId
+                });
+                showErrorNotification('No inventory system or item ID');
+                return;
             }
         }
         
@@ -581,13 +650,8 @@ class PlantPlacement {
         
         let jointControls = '';
         if (isJoint) {
-            jointControls = `
-                <div class="joint-controls">
-                    <button class="joint-spark-btn" id="jointSparkBtn">
-                        Spark up
-                    </button>
-                </div>
-            `;
+            // We'll generate the controls dynamically after checking upgrade status
+            jointControls = `<div class="joint-controls" id="jointControlsContainer"></div>`;
         }
         
         // Add content with close button
@@ -1131,52 +1195,163 @@ class PlantPlacement {
                 smokeInterval: null
             };
         }
-        
+
         const state = this.jointStates[key];
         state.element = jointElement; // Update element reference
-        
-        const sparkBtn = document.getElementById('jointSparkBtn');
-        if (!sparkBtn) return;
-        
-        // Restore button state
-        if (state.isLit) {
-            sparkBtn.innerHTML = 'Put out';
-            sparkBtn.classList.add('lit');
+
+        // Populate joint controls dynamically based on upgrade status
+        this.populateJointControls(row, col);
+    }
+
+    // Populate joint controls based on upgrade status
+    async populateJointControls(row, col) {
+        console.log('🔧 populateJointControls called for joint at [' + row + ', ' + col + ']');
+        const controlsContainer = document.getElementById('jointControlsContainer');
+        if (!controlsContainer) {
+            console.error('❌ jointControlsContainer not found!');
+            return;
         }
-        
-        // Spark up / Put out button toggle
-        sparkBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            state.isLit = !state.isLit;
+        console.log('✅ Found jointControlsContainer');
+
+        try {
+            // Check if player has already upgraded
+            const currentWalletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet');
+            let hasUpgraded = false;
             
-            if (state.isLit) {
+            console.log('🔍 Checking upgrade status for wallet:', currentWalletAddress);
+            
+            if (currentWalletAddress && window.supabaseClient) {
+                hasUpgraded = await window.supabaseClient.checkPlayerJointUpgradeStatus(currentWalletAddress);
+                console.log('🔍 Upgrade status check result:', hasUpgraded);
+            } else {
+                console.log('⚠️ No wallet address or supabase client available');
+            }
+
+            // Generate appropriate buttons
+            let upgradeButton = '';
+            if (hasUpgraded) {
+                // Player has already upgraded - don't show upgrade button at all
+                upgradeButton = '';
+                console.log('🚫 Player has upgraded - hiding Upgrade button');
+            } else {
+                upgradeButton = `
+                    <button class="joint-upgrade-btn" id="jointUpgradeBtn">
+                        Upgrade to Sprout
+                    </button>
+                `;
+                console.log('✅ Player has not upgraded - showing Upgrade button');
+            }
+
+            const buttonHTML = `
+                <button class="joint-spark-btn" id="jointSparkBtn">
+                    Spark up
+                </button>
+                ${upgradeButton}
+            `;
+            
+            console.log('🔧 Setting innerHTML:', buttonHTML);
+            controlsContainer.innerHTML = buttonHTML;
+
+        } catch (error) {
+            console.error('❌ Failed to check upgrade status:', error);
+            // Fallback to showing upgrade button if check fails
+            const fallbackHTML = `
+                <button class="joint-spark-btn" id="jointSparkBtn">
+                    Spark up
+                </button>
+                <button class="joint-upgrade-btn" id="jointUpgradeBtn">
+                    Upgrade to Sprout
+                </button>
+            `;
+            console.log('🔧 Using fallback HTML:', fallbackHTML);
+            controlsContainer.innerHTML = fallbackHTML;
+        }
+
+        console.log('🔧 Calling addJointEventHandlers...');
+        // Always add event handlers after innerHTML is set
+        this.addJointEventHandlers(row, col);
+        console.log('✅ Joint controls setup complete');
+    }
+
+    // Add event handlers for joint controls
+    addJointEventHandlers(row, col) {
+        const key = `${row}-${col}`;
+        
+        // Add spark button handler with proper state management
+        const sparkBtn = document.getElementById('jointSparkBtn');
+        if (sparkBtn) {
+            // Restore button state if joint states exist
+            if (this.jointStates && this.jointStates[key] && this.jointStates[key].isLit) {
                 sparkBtn.innerHTML = 'Put out';
                 sparkBtn.classList.add('lit');
-                console.log('🔥 Joint sparked up!');
-                
-                // Add smoking animation to joint element
-                if (state.element) {
-                    state.element.classList.add('joint-smoking');
-                }
-                
-                // Start smoke animation
-                this.startSmokeAnimation(state.element);
-            } else {
-                sparkBtn.innerHTML = 'Spark up';
-                sparkBtn.classList.remove('lit');
-                console.log('💨 Joint put out');
-                
-                // Remove smoking animation from joint element
-                if (state.element) {
-                    state.element.classList.remove('joint-smoking');
-                }
-                
-                // Stop smoke animation
-                this.stopSmokeAnimation(state.element);
             }
-        });
+            
+            sparkBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Initialize joint states if needed
+                if (!this.jointStates) {
+                    this.jointStates = {};
+                }
+                
+                if (!this.jointStates[key]) {
+                    this.jointStates[key] = {
+                        isLit: false,
+                        element: null,
+                        smokeInterval: null
+                    };
+                }
+                
+                const state = this.jointStates[key];
+                
+                // Find the joint element on the grid
+                const jointElement = document.querySelector(`[data-plant-row="${row}"][data-plant-col="${col}"]`);
+                if (jointElement) {
+                    state.element = jointElement;
+                }
+                
+                // Toggle lit state
+                state.isLit = !state.isLit;
+                
+                if (state.isLit) {
+                    sparkBtn.innerHTML = 'Put out';
+                    sparkBtn.classList.add('lit');
+                    console.log('🔥 Joint sparked up!');
+                    
+                    // Add smoking animation to joint element
+                    if (state.element) {
+                        state.element.classList.add('joint-smoking');
+                    }
+                    
+                    // Start smoke animation
+                    this.startSmokeAnimation(state.element);
+                } else {
+                    sparkBtn.innerHTML = 'Spark up';
+                    sparkBtn.classList.remove('lit');
+                    console.log('💨 Joint put out');
+                    
+                    // Remove smoking animation from joint element
+                    if (state.element) {
+                        state.element.classList.remove('joint-smoking');
+                    }
+                    
+                    // Stop smoke animation
+                    this.stopSmokeAnimation(state.element);
+                }
+            });
+        }
+
+        // Add upgrade button handler (if it exists)
+        const upgradeBtn = document.getElementById('jointUpgradeBtn');
+        if (upgradeBtn) {
+            upgradeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('🚀 Opening joint upgrade popup');
+                this.showJointUpgradePopup(row, col);
+            });
+        }
     }
-    
+
     // Start smoke animation from joint
     startSmokeAnimation(jointElement) {
         if (!jointElement) return;
@@ -1657,4 +1832,850 @@ class PlantPlacement {
             console.log('🛑 BUD generation stopped');
         }
     }
+
+    // Show joint upgrade popup
+    async showJointUpgradePopup(row, col) {
+        // Check if player has already upgraded
+        try {
+            const currentWalletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet');
+            if (currentWalletAddress && window.supabaseClient) {
+                const hasUpgraded = await window.supabaseClient.checkPlayerJointUpgradeStatus(currentWalletAddress);
+                if (hasUpgraded) {
+                    showErrorNotification('You have already upgraded a joint to sprout. Only one upgrade is allowed per player.');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to check upgrade status:', error);
+            showErrorNotification('Error checking upgrade status. Please try again.');
+            return;
+        }
+
+        // Remove existing upgrade popup if any
+        const existingPopup = document.getElementById('jointUpgradePopup');
+        if (existingPopup) {
+            existingPopup.remove();
+        }
+
+        // Create upgrade popup
+        const upgradePopup = document.createElement('div');
+        upgradePopup.id = 'jointUpgradePopup';
+        upgradePopup.className = 'joint-upgrade-popup';
+
+        upgradePopup.innerHTML = `
+            <div class="upgrade-popup-content">
+                <button class="upgrade-close-btn" id="upgradeCloseBtn">✕</button>
+                <div class="upgrade-header">
+                    <h3>Upgrade to Sprout</h3>
+                </div>
+                <div class="upgrade-explanation">
+                    <div class="upgrade-visual">
+                        <div class="upgrade-from">
+                            <img src="assets/sprites/joint.png" alt="Joint" class="upgrade-item-img">
+                            <div class="upgrade-item-name">Joint</div>
+                            <div class="upgrade-item-rate">0 BUD/min</div>
+                        </div>
+                        <div class="upgrade-arrow">→</div>
+                        <div class="upgrade-to">
+                            <img src="assets/sprout.png" alt="Sprout" class="upgrade-item-img">
+                            <div class="upgrade-item-name">Sprout</div>
+                            <div class="upgrade-item-rate">1000 BUD/min</div>
+                        </div>
+                    </div>
+                    <div class="upgrade-description">
+                        <p>Transform your joint into a BUD-generating sprout!</p>
+                        <p>Start earning 1000 BUD per minute by upgrading.</p>
+                    </div>
+                    <div class="upgrade-cost">
+                        <div class="cost-label">Upgrade Cost:</div>
+                        <div class="cost-value">0.1 SOL</div>
+                    </div>
+                </div>
+                <div class="upgrade-actions">
+                    <button class="upgrade-now-btn" id="popupUpgradeNowBtn">Upgrade Now</button>
+                    <button class="upgrade-cancel-btn" id="upgradeCancelBtn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        document.body.appendChild(upgradePopup);
+
+        // Store reference to 'this' for use in setTimeout
+        const self = this;
+
+        // Wait a moment for DOM to settle, then add event handlers
+        setTimeout(() => {
+
+        // Add event handlers
+        const closeBtn = document.getElementById('upgradeCloseBtn');
+        const cancelBtn = document.getElementById('upgradeCancelBtn');
+        const upgradeNowBtn = document.getElementById('popupUpgradeNowBtn');
+
+        const closePopup = () => {
+            upgradePopup.remove();
+        };
+
+        closeBtn.addEventListener('click', closePopup);
+        cancelBtn.addEventListener('click', closePopup);
+
+        if (upgradeNowBtn) {
+            console.log('✅ Found Upgrade Now button, adding click handler');
+            upgradeNowBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🚀 Starting upgrade process for joint at [' + row + ', ' + col + ']');
+                console.log('💰 Upgrade Now button clicked in popup');
+                try {
+                    // Use 'self' instead of 'this' to maintain context
+                    self.startUpgradeProcess(row, col);
+                } catch (error) {
+                    console.error('❌ Error in startUpgradeProcess:', error);
+                }
+            });
+        } else {
+            console.error('❌ Upgrade Now button not found!');
+        }
+
+        // Close when clicking outside
+        upgradePopup.addEventListener('click', (e) => {
+            if (e.target === upgradePopup) {
+                closePopup();
+            }
+        });
+        
+        }, 100); // Close setTimeout
+    }
+
+    // Start the upgrade process - wallet collection
+    async startUpgradeProcess(row, col) {
+        console.log('💳 Starting upgrade process...');
+        // Double-check that player hasn't already upgraded (extra security)
+        try {
+            const currentWalletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet');
+            if (currentWalletAddress && window.supabaseClient) {
+                const hasUpgraded = await window.supabaseClient.checkPlayerJointUpgradeStatus(currentWalletAddress);
+                if (hasUpgraded) {
+                    showErrorNotification('You have already upgraded a joint to sprout. Only one upgrade is allowed per player.');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Failed to check upgrade status:', error);
+            showErrorNotification('Error checking upgrade status. Please try again.');
+            return;
+        }
+
+        // Close upgrade popup
+        const upgradePopup = document.getElementById('jointUpgradePopup');
+        if (upgradePopup) {
+            upgradePopup.remove();
+        }
+
+        console.log('🏦 Showing wallet collection popup...');
+        // Show wallet collection popup
+        this.showWalletCollectionPopup(row, col);
+    }
+
+    // Show wallet address collection popup
+    showWalletCollectionPopup(row, col) {
+        // Remove existing wallet popup if any
+        const existingPopup = document.getElementById('walletCollectionPopup');
+        if (existingPopup) {
+            existingPopup.remove();
+        }
+
+        // Create wallet collection popup
+        const walletPopup = document.createElement('div');
+        walletPopup.id = 'walletCollectionPopup';
+        walletPopup.className = 'wallet-collection-popup';
+
+        walletPopup.innerHTML = `
+            <div class="wallet-popup-content">
+                <button class="wallet-close-btn" id="walletCloseBtn">✕</button>
+                <div class="wallet-header">
+                    <h3>Enter Your Wallet Address</h3>
+                </div>
+                <div class="wallet-explanation">
+                    <p>Please enter the Solana wallet address you'll be sending 0.1 SOL from:</p>
+                </div>
+                <div class="wallet-input-section">
+                    <label for="walletAddressInput">Wallet Address:</label>
+                    <input type="text" id="walletAddressInput" placeholder="Enter your Solana wallet address..." class="wallet-address-input">
+                    <div class="wallet-validation-message" id="walletValidationMessage"></div>
+                </div>
+                <div class="wallet-actions">
+                    <button class="wallet-submit-btn" id="walletSubmitBtn">Submit</button>
+                    <button class="wallet-cancel-btn" id="walletCancelBtn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        document.body.appendChild(walletPopup);
+
+        // Add event handlers
+        const closeBtn = document.getElementById('walletCloseBtn');
+        const cancelBtn = document.getElementById('walletCancelBtn');
+        const submitBtn = document.getElementById('walletSubmitBtn');
+        const walletInput = document.getElementById('walletAddressInput');
+        const validationMessage = document.getElementById('walletValidationMessage');
+
+        const closePopup = () => {
+            walletPopup.remove();
+        };
+
+        closeBtn.addEventListener('click', closePopup);
+        cancelBtn.addEventListener('click', closePopup);
+
+        // Clear error state when user starts typing
+        walletInput.addEventListener('input', () => {
+            walletInput.className = 'wallet-address-input';
+            validationMessage.textContent = '';
+            validationMessage.className = 'wallet-validation-message';
+        });
+
+        submitBtn.addEventListener('click', () => {
+            const walletAddress = walletInput.value.trim();
+            
+            // Basic validation
+            if (!walletAddress) {
+                validationMessage.textContent = 'Please enter a wallet address';
+                validationMessage.className = 'wallet-validation-message error';
+                walletInput.className = 'wallet-address-input error';
+                return;
+            }
+
+            // Basic Solana address validation (length and format)
+            if (walletAddress.length < 32 || walletAddress.length > 44) {
+                validationMessage.textContent = 'Invalid wallet address format';
+                validationMessage.className = 'wallet-validation-message error';
+                walletInput.className = 'wallet-address-input error';
+                return;
+            }
+
+            console.log('💳 Wallet address submitted:', walletAddress);
+            validationMessage.textContent = 'Wallet address validated';
+            validationMessage.className = 'wallet-validation-message success';
+            walletInput.className = 'wallet-address-input';
+
+            // Proceed to payment step
+            setTimeout(() => {
+                this.showPaymentPopup(row, col, walletAddress);
+            }, 1000);
+        });
+
+        // Close when clicking outside
+        walletPopup.addEventListener('click', (e) => {
+            if (e.target === walletPopup) {
+                closePopup();
+            }
+        });
+    }
+
+    // Show payment instructions popup
+    showPaymentPopup(row, col, userWalletAddress) {
+        // Close wallet popup
+        const walletPopup = document.getElementById('walletCollectionPopup');
+        if (walletPopup) {
+            walletPopup.remove();
+        }
+
+        // Create payment popup
+        const paymentPopup = document.createElement('div');
+        paymentPopup.id = 'paymentPopup';
+        paymentPopup.className = 'payment-popup';
+
+        // Destination wallet address (this should be your actual Solana wallet)
+        const destinationWallet = 'HazsuX3HbrGVNrbhdSx4RMZxnuhN1eENECeSKnjL1VMV'; // Replace with your actual wallet
+
+        paymentPopup.innerHTML = `
+            <div class="payment-popup-content">
+                <button class="payment-close-btn" id="paymentCloseBtn">✕</button>
+                <div class="payment-header">
+                    <h3>Send Payment</h3>
+                </div>
+                <div class="payment-instructions">
+                    <p>Send exactly <strong>0.1 SOL</strong> to the address below:</p>
+                    <div class="destination-wallet">
+                        <label>Destination Address:</label>
+                        <div class="wallet-address-display">
+                            <span id="destinationAddress">${destinationWallet}</span>
+                            <button class="copy-address-btn" id="copyAddressBtn">Copy</button>
+                        </div>
+                    </div>
+                    <div class="payment-amount">
+                        <label>Amount to Send:</label>
+                        <div class="amount-display">0.1 SOL</div>
+                    </div>
+                    <div class="payment-warning">
+                        <p>⚠️ Make sure to send exactly 0.1 SOL from the wallet address you provided:</p>
+                        <div class="user-wallet-display">${userWalletAddress}</div>
+                        <p style="margin-top: 10px; font-size: 8px; color: #4a9d5f;">
+                            💡 Tip: Once you have made your payment to the wallet, click the "Check Payment" button below to verify your purchase.
+                        </p>
+                    </div>
+                </div>
+                <div class="payment-status">
+                    <div class="status-message waiting" id="paymentStatusMessage">Waiting for payment..<br>Click "Check Payment" when ready.</div>
+                    <div class="status-indicator" id="paymentStatusIndicator"></div>
+                </div>
+                <div class="payment-actions">
+                    <button class="check-payment-btn" id="checkPaymentBtn">Check Payment</button>
+                    <button class="payment-cancel-btn" id="paymentCancelBtn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        document.body.appendChild(paymentPopup);
+
+        // Add event handlers
+        const closeBtn = document.getElementById('paymentCloseBtn');
+        const cancelBtn = document.getElementById('paymentCancelBtn');
+        const checkPaymentBtn = document.getElementById('checkPaymentBtn');
+        const copyAddressBtn = document.getElementById('copyAddressBtn');
+
+        const closePopup = () => {
+            paymentPopup.remove();
+        };
+
+        closeBtn.addEventListener('click', closePopup);
+        cancelBtn.addEventListener('click', closePopup);
+
+        // Copy address to clipboard
+        copyAddressBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(destinationWallet).then(() => {
+                copyAddressBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyAddressBtn.textContent = 'Copy';
+                }, 2000);
+            });
+        });
+
+        // Check payment
+        checkPaymentBtn.addEventListener('click', () => {
+            this.checkSolanaPayment(userWalletAddress, destinationWallet, row, col);
+        });
+
+        // Close when clicking outside
+        paymentPopup.addEventListener('click', (e) => {
+            if (e.target === paymentPopup) {
+                closePopup();
+            }
+        });
+
+        // Store upgrade info for later use
+        this.pendingUpgrade = {
+            row: row,
+            col: col,
+            userWallet: userWalletAddress,
+            destinationWallet: destinationWallet
+        };
+
+        // Manual payment checking only - no automatic checking
+        // Users must click "Check Payment" button to verify
+        console.log('💳 Payment popup ready - click "Check Payment" to verify your transaction');
+    }
+
+    // Check Solana blockchain for payment
+    async checkSolanaPayment(fromWallet, toWallet, row, col) {
+        const statusMessage = document.getElementById('paymentStatusMessage');
+        const statusIndicator = document.getElementById('paymentStatusIndicator');
+        const checkBtn = document.getElementById('checkPaymentBtn');
+
+        if (!statusMessage || !statusIndicator || !checkBtn) return;
+
+        statusMessage.textContent = 'Checking blockchain...';
+        statusMessage.className = 'status-message'; // Reset to normal styling
+        statusIndicator.textContent = '🔍';
+        checkBtn.disabled = true;
+        checkBtn.textContent = 'Checking...';
+
+        try {
+            console.log('🔍 Checking payment from:', fromWallet, 'to:', toWallet);
+            
+            // Check if we're running locally (file://) - CORS issues
+            const isLocalFile = window.location.protocol === 'file:';
+            
+            if (isLocalFile) {
+                console.error('❌ Local file access not supported for blockchain verification');
+                statusMessage.textContent = 'Error: Host this game on a web server for blockchain verification. Local files cannot access blockchain.';
+                statusIndicator.textContent = '❌';
+                
+                // Show error notification
+                showErrorNotification('This game must be hosted on a web server to verify blockchain payments. Local file access is not supported.');
+                
+                return; // Exit early for local file testing
+            }
+            
+            // Use authenticated RPC endpoint for reliable blockchain access
+            const SOLANA_RPC_URL = 'https://basic.rpc.solanavibestation.com/?api_key=7ca9258817043ad1b26a45fe4df973e6';
+            
+            console.log('🔍 Using authenticated RPC endpoint for blockchain verification...');
+            
+            try {
+                // Get recent transactions for the destination wallet
+                const response = await fetch(SOLANA_RPC_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'getSignaturesForAddress',
+                        params: [
+                            toWallet,
+                            {
+                                limit: 20, // Check last 20 transactions
+                                commitment: 'confirmed'
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(`RPC Error: ${data.error.message || data.error}`);
+                }
+
+                console.log('✅ Successfully connected to authenticated RPC endpoint');
+                console.log('📡 Found', data.result.length, 'recent transactions');
+                
+                // Continue with transaction verification using the authenticated endpoint
+                const paymentFound = await this.verifyTransactions(data.result, fromWallet, toWallet, SOLANA_RPC_URL);
+                
+                if (paymentFound) {
+                    statusMessage.textContent = 'Payment confirmed!';
+                    statusMessage.className = 'status-message'; // Remove any error styling
+                    statusIndicator.textContent = '✅';
+                    
+                    setTimeout(() => {
+                        this.completeUpgrade(row, col);
+                    }, 1500);
+                } else {
+                    statusMessage.textContent = 'Payment not found. Please ensure you sent exactly 0.1 SOL and try again.';
+                    statusMessage.className = 'status-message error';
+                    statusIndicator.textContent = '❌';
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = 'Check Payment';
+                    
+                    console.log('❌ No matching payment found');
+                }
+                
+            } catch (rpcError) {
+                console.error('❌ Authenticated RPC failed:', rpcError);
+                
+                // RPC connection failed - no demo mode, require real payment
+                statusMessage.textContent = 'Blockchain connection failed. Payment verification requires working RPC connection.';
+                statusMessage.className = 'status-message error';
+                statusIndicator.textContent = '❌';
+                
+                // Show error notification
+                showErrorNotification(`Blockchain connection failed: ${rpcError.message}. Please try again or contact support.`);
+                
+                // Reset payment status
+                const checkBtn = document.querySelector('.check-payment-btn');
+                if (checkBtn) {
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = 'Check Payment';
+                }
+                
+                return; // Exit without allowing upgrade
+            }
+
+        } catch (error) {
+            console.error('❌ Payment check failed:', error);
+            
+            // Provide specific error messages - no demo mode allowed
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                statusMessage.textContent = 'RPC access denied. Valid blockchain connection required for payment verification.';
+                statusMessage.className = 'status-message error';
+                
+                showErrorNotification('RPC access denied. Please contact support to resolve blockchain access issues.');
+                
+            } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                statusMessage.textContent = 'CORS error. Please host this game on a web server for blockchain verification.';
+                statusMessage.className = 'status-message error';
+                
+                showErrorNotification('CORS error. Game must be hosted on a web server for blockchain access.');
+                
+            } else {
+                statusMessage.textContent = 'Error checking blockchain. Please try again.';
+                statusMessage.className = 'status-message error';
+                
+                showErrorNotification(`Blockchain error: ${error.message}. Please try again.`);
+            }
+            
+            statusIndicator.textContent = '❌';
+            checkBtn.disabled = false;
+            checkBtn.textContent = 'Check Payment';
+        }
+    }
+
+    // Separate method to verify transactions (cleaner code)
+    async verifyTransactions(signatures, fromWallet, toWallet, rpcUrl) {
+        console.log('📡 Found', signatures.length, 'recent transactions');
+        
+        // Check each transaction for the payment
+        let paymentFound = false;
+        let paymentDetails = null;
+
+        for (const sig of signatures) {
+            try {
+                // Get transaction details
+                const txResponse = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'getTransaction',
+                        params: [
+                            sig.signature,
+                            {
+                                encoding: 'jsonParsed',
+                                commitment: 'confirmed'
+                            }
+                        ]
+                    })
+                });
+
+                const txData = await txResponse.json();
+                
+                if (txData.error || !txData.result) {
+                    continue; // Skip if transaction not found or error
+                }
+
+                const transaction = txData.result;
+                
+                // Check if transaction was successful
+                if (transaction.meta.err !== null) {
+                    continue; // Skip failed transactions
+                }
+
+                // Check transaction timestamp (within last 10 minutes)
+                const txTime = transaction.blockTime * 1000; // Convert to milliseconds
+                const currentTime = Date.now();
+                const tenMinutesAgo = currentTime - (10 * 60 * 1000);
+                
+                if (txTime < tenMinutesAgo) {
+                    continue; // Skip old transactions
+                }
+
+                // Parse the transaction to find SOL transfers
+                const instructions = transaction.transaction.message.instructions;
+                
+                for (const instruction of instructions) {
+                    // Check for system transfer instruction
+                    if (instruction.program === 'system' && 
+                        instruction.parsed && 
+                        instruction.parsed.type === 'transfer') {
+                        
+                        const transferInfo = instruction.parsed.info;
+                        const sourceAccount = transferInfo.source;
+                        const destinationAccount = transferInfo.destination;
+                        const lamports = transferInfo.lamports;
+                        
+                        // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+                        const solAmount = lamports / 1000000000;
+                        
+                        console.log('💰 Found transfer:', {
+                            from: sourceAccount,
+                            to: destinationAccount,
+                            amount: solAmount,
+                            signature: sig.signature
+                        });
+                        
+                        // Check if this is our payment
+                        if (sourceAccount === fromWallet && 
+                            destinationAccount === toWallet && 
+                            Math.abs(solAmount - 0.1) < 0.0001) { // Allow small precision differences
+                            
+                            // Check if this payment signature has already been used
+                            console.log('🔍 Checking if payment signature has been used before...');
+                            
+                            try {
+                                if (window.supabaseClient) {
+                                    const isSignatureUsed = await window.supabaseClient.checkPaymentSignatureUsed(sig.signature);
+                                    
+                                    if (isSignatureUsed) {
+                                        console.warn('⚠️ Payment signature already used:', sig.signature);
+                                        showErrorNotification('This payment has already been used. Each payment can only be used once.');
+                                        continue; // Skip this transaction and check next one
+                                    }
+                                    
+                                    console.log('✅ Payment signature is available for use');
+                                } else {
+                                    console.warn('⚠️ Supabase not available - cannot check payment history');
+                                }
+                            } catch (dbError) {
+                                console.error('❌ Database error checking payment signature:', dbError);
+                                showErrorNotification('Database error checking payment history. Please try again.');
+                                return false;
+                            }
+                            
+                            paymentFound = true;
+                            paymentDetails = {
+                                signature: sig.signature,
+                                amount: solAmount,
+                                timestamp: txTime,
+                                from: sourceAccount,
+                                to: destinationAccount
+                            };
+                            
+                            console.log('✅ Payment verified and signature available!', paymentDetails);
+                            
+                            // Store payment details for potential future reference
+                            this.lastVerifiedPayment = paymentDetails;
+                            
+                            return true; // Payment found and signature not used!
+                        }
+                    }
+                }
+                
+                if (paymentFound) break;
+                
+            } catch (txError) {
+                console.warn('⚠️ Error checking transaction:', sig.signature, txError);
+                continue; // Skip this transaction and continue
+            }
+        }
+
+        return false; // No payment found
+    }
+
+    // Complete the upgrade - add sprout to inventory
+    async completeUpgrade(row, col) {
+        // Store the verified payment signature FIRST to prevent reuse
+        if (this.lastVerifiedPayment && window.supabaseClient) {
+            try {
+                console.log('💾 Storing verified payment signature to prevent reuse...');
+                const storeResult = await window.supabaseClient.storeVerifiedPayment(
+                    this.lastVerifiedPayment,
+                    'upgrade', // used_for
+                    'sprout' // item_purchased
+                );
+                
+                if (!storeResult.success) {
+                    // Payment signature already used by someone else in the meantime
+                    console.error('❌ Payment signature already used:', storeResult.message);
+                    showErrorNotification('This payment has already been used. Please make a new payment.');
+                    return; // Exit without completing upgrade
+                }
+                
+                console.log('✅ Payment signature stored successfully');
+            } catch (error) {
+                console.error('❌ Failed to store payment signature:', error);
+                showErrorNotification('Error storing payment verification. Please try again.');
+                return; // Exit without completing upgrade
+            }
+        } else {
+            console.warn('⚠️ No payment verification or Supabase unavailable');
+        }
+
+        // Close payment popup
+        const paymentPopup = document.getElementById('paymentPopup');
+        if (paymentPopup) {
+            paymentPopup.remove();
+        }
+
+        try {
+            // Add sprout to server inventory FIRST (server is source of truth)
+            if (window.supabaseClient) {
+                console.log('🔄 Adding sprout to server inventory...');
+                const serverSuccess = await window.supabaseClient.addToInventory('sprout', 1);
+                
+                if (serverSuccess) {
+                    console.log('✅ Sprout added to server inventory');
+                    
+                    // Mark player as having upgraded joint to sprout
+                    try {
+                        console.log('🔄 Marking player as having upgraded joint to sprout...');
+                        const currentWalletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet');
+                        if (currentWalletAddress) {
+                            const upgradeResult = await window.supabaseClient.markPlayerJointUpgraded(currentWalletAddress);
+                            if (upgradeResult.success) {
+                                console.log('✅ Player marked as upgraded successfully');
+                            } else {
+                                console.warn('⚠️ Failed to mark player as upgraded:', upgradeResult.message);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Failed to mark player as upgraded:', error);
+                        // Don't block the upgrade flow for this tracking error
+                    }
+                    
+                    // Reload inventory from server to get the updated state
+                    console.log('🔄 Reloading inventory from server...');
+                    const serverInventory = await window.supabaseClient.getInventory();
+                    
+                    if (window.inventorySystem && serverInventory) {
+                        // Replace local inventory with server data
+                        window.inventorySystem.items = serverInventory.map(item => {
+                            // Get generation rate from server, fallback to config if needed
+                            let generationRate = item.items?.generation_rate;
+                            
+                            // If server doesn't have generation rate or it's 0, use config as fallback
+                            if (!generationRate || generationRate === 0) {
+                                const itemConfig = ITEMS_CONFIG.find(config => config.id === item.item_id);
+                                if (itemConfig && itemConfig.rewardRate) {
+                                    // Extract number from "1000 BUD/min" format
+                                    const match = itemConfig.rewardRate.match(/(\d+)/);
+                                    generationRate = match ? parseInt(match[1]) : 0;
+                                }
+                            }
+                            
+                            return {
+                                id: item.item_id,
+                                name: item.items?.name || item.item_id,
+                                image: item.items?.image_url || `assets/${item.item_id}.png`,
+                                rewardRate: `${generationRate || 0} BUD/min`,
+                                count: item.count
+                            };
+                        });
+                        
+                        // Re-render with server data
+                        window.inventorySystem.renderInventory();
+                        console.log('✅ Inventory updated from server');
+                    }
+                } else {
+                    console.error('❌ Failed to add sprout to server');
+                    // Show error message
+                    this.showUpgradeErrorMessage();
+                    return;
+                }
+            }
+
+            // Show success message
+            this.showUpgradeSuccessMessage();
+
+            // Remove the joint from the grid (optional - or keep it)
+            // For now, we'll keep the joint and let the user place the sprout separately
+            
+        } catch (error) {
+            console.error('❌ Failed to complete upgrade:', error);
+            // Show error message
+            this.showUpgradeErrorMessage();
+        }
+    }
+
+    // Show upgrade success message
+    showUpgradeSuccessMessage() {
+        const successPopup = document.createElement('div');
+        successPopup.className = 'upgrade-success-popup';
+
+        successPopup.innerHTML = `
+            <div class="success-popup-content">
+                <div class="success-header">
+                    <h3>Upgrade Complete!</h3>
+                </div>
+                <div class="success-message">
+                    <p>Your payment has been confirmed!</p>
+                    <p>A <strong>Sprout</strong> has been added to your inventory.</p>
+                    <div class="success-item">
+                        <img src="assets/sprout.png" alt="Sprout" class="success-item-img">
+                        <div class="success-item-details">
+                            <div class="success-item-name">Sprout</div>
+                            <div class="success-item-rate">1000 BUD/min</div>
+                        </div>
+                    </div>
+                    <p>Check your inventory to place your new sprout!</p>
+                </div>
+                <div class="success-actions">
+                    <button class="success-ok-btn" id="successOkBtn">Awesome!</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(successPopup);
+
+        // Only close when user clicks "Awesome!" button
+        const closeSuccess = () => {
+            successPopup.remove();
+        };
+
+        document.getElementById('successOkBtn').addEventListener('click', closeSuccess);
+    }
+
+    // Show upgrade error message
+    showUpgradeErrorMessage() {
+        const errorPopup = document.createElement('div');
+        errorPopup.className = 'upgrade-error-popup';
+
+        errorPopup.innerHTML = `
+            <div class="error-popup-content">
+                <div class="error-header">
+                    <h3>❌ Upgrade Failed</h3>
+                </div>
+                <div class="error-message">
+                    <p>Sorry, there was an error completing your upgrade.</p>
+                    <p>Please try again or contact support if the problem persists.</p>
+                </div>
+                <div class="error-actions">
+                    <button class="error-ok-btn" id="errorOkBtn">OK</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(errorPopup);
+
+        const closeError = () => {
+            errorPopup.remove();
+        };
+
+        document.getElementById('errorOkBtn').addEventListener('click', closeError);
+    }
+
+    // Test function for blockchain verification (for debugging)
+    async testSolanaConnection() {
+        console.log('🧪 Testing Solana blockchain connection...');
+        
+        const SOLANA_RPC_URL = 'https://basic.rpc.solanavibestation.com/?api_key=7ca9258817043ad1b26a45fe4df973e6';
+        
+        try {
+            const response = await fetch(SOLANA_RPC_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getVersion'
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.result) {
+                console.log('✅ Solana connection successful!', data.result);
+                return true;
+            } else {
+                console.error('❌ Solana connection failed:', data.error);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Solana connection error:', error);
+            return false;
+        }
+    }
 }
+
+// Global test function for console debugging
+window.testSolanaConnection = async function() {
+    if (window.plantPlacement) {
+        return await window.plantPlacement.testSolanaConnection();
+    } else {
+        console.error('❌ PlantPlacement not initialized');
+        return false;
+    }
+};

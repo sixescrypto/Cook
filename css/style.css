@@ -3,6 +3,40 @@
 /* Import Pixel Font */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 16px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f1419;
+    border: 2px solid #00ff41;
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00ff41;
+    border: 2px solid #0f1419;
+    border-radius: 0;
+    box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4aff6b;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+    background: #0f1419;
+    border: 2px solid #00ff41;
+}
+
+/* Firefox scrollbar styling */
+html {
+    scrollbar-width: thick;
+    scrollbar-color: #00ff41 #0f1419;
+}
+
 /* Reset and Base Styles */
 * {
     margin: 0;
@@ -14,12 +48,23 @@ body {
     font-family: 'Press Start 2P', cursive;
     background: #1a1f28;
     color: #00ff41;
+    /* Improve mobile touch interaction */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
     overflow-x: hidden;
     min-height: 100vh;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     position: relative;
+}
+
+/* Mobile touch optimization for all buttons */
+button {
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Scanline effect */
@@ -654,6 +699,8 @@ body::after {
     cursor: pointer;
     pointer-events: all;
     transition: none; /* Remove smooth transitions for pixel-perfect effect */
+    /* Mobile touch optimization */
+    -webkit-tap-highlight-color: transparent;
 }
 
 .grid-tile:hover {
@@ -722,6 +769,15 @@ body::after {
         inset 0 0 0 6px #FFD700;
 }
 
+/* Touch states for mobile - add active state to show feedback on touch */
+.grid-tile:active::before,
+.grid-tile.touch-active::before {
+    opacity: 1;
+    background: transparent;
+    box-shadow: 
+        inset 0 0 0 6px #FFD700;
+}
+
 /* Occupied tiles (for placing objects) */
 .grid-tile.occupied::before {
     background: rgba(255, 0, 0, 0.1);
@@ -729,6 +785,14 @@ body::after {
 }
 
 .grid-tile.occupied:hover::before {
+    border-color: #ff0000;
+    background: rgba(255, 0, 0, 0.2);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+}
+
+/* Touch states for occupied tiles on mobile */
+.grid-tile.occupied:active::before,
+.grid-tile.occupied.touch-active::before {
     border-color: #ff0000;
     background: rgba(255, 0, 0, 0.2);
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
@@ -1161,6 +1225,24 @@ body::after {
     border-color: #00ff41;
     color: #00ff41;
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.joint-upgrade-btn {
+    width: 100%;
+    padding: 10px;
+    background: #0f1419;
+    border: 2px solid #ffaa00;
+    color: #ffaa00;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.joint-upgrade-btn:hover {
+    background: rgba(255, 170, 0, 0.1);
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.3);
 }
 
 @keyframes glow {
@@ -2077,6 +2159,110 @@ body::after {
     padding: 10px 0;
 }
 
+/* Profile Details */
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.profile-row {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 15px;
+    background: #1a1f28;
+    border: 2px solid #00ff41;
+}
+
+.profile-half {
+    flex: 1;
+}
+
+.profile-full {
+    width: 100%;
+}
+
+.profile-referral-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.profile-referral-section .profile-label {
+    font-size: 9px;
+    color: #4a9d5f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 5px;
+}
+
+.profile-label {
+    font-size: 9px;
+    color: #4a9d5f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.profile-value {
+    font-size: 11px;
+    color: #00ff41;
+    font-weight: bold;
+    word-break: break-all; /* For long wallet addresses */
+}
+
+/* Profile Referral Code with Copy Button */
+.profile-referral-code {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #1a1f28;
+    border: 3px solid #FFD700;
+    margin-top: 10px;
+}
+
+.profile-referral-code .profile-value {
+    font-size: 14px;
+    color: #FFD700;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    letter-spacing: 1px;
+}
+
+.profile-copy-btn {
+    background: #1a1f28;
+    border: 2px solid #FFD700;
+    color: #FFD700;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    min-width: 60px;
+    flex-shrink: 0;
+}
+
+.profile-copy-btn:hover {
+    background: #FFD700;
+    color: #1a1f28;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.profile-copy-btn.copied {
+    background: #FFD700;
+    color: #1a1f28;
+}
+
 .calc-field {
     display: flex;
     flex-direction: column;
@@ -2208,29 +2394,6 @@ body::after {
 @keyframes fadeOut {
     from { opacity: 1; }
     to { opacity: 0; }
-}
-
-/* Footer */
-.game-footer {
-    background: #0f1419;
-    border: 3px solid #00ff41;
-    padding: 20px;
-    text-align: center;
-    margin-top: 30px;
-    box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
-}
-
-.footer-text {
-    font-size: 9px;
-    color: #4a9d5f;
-    animation: none;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-@keyframes footerPulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
 }
 
 /* Particle Effects */
@@ -2388,6 +2551,22 @@ body::after {
     /* Grid system handles responsive alignment */
     .game-main {
         grid-template-columns: 1fr;
+        /* Mobile layout: BUD stats, room, then inventory */
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Split control panel on mobile */
+    .control-panel {
+        padding: 0;
+        display: contents; /* This breaks the control panel container on mobile */
+    }
+    
+    .bud-generation-stats {
+        /* BUD stats at top */
+        order: 1;
+        padding: 15px;
+        margin-bottom: 10px;
     }
     
     .room-container {
@@ -2397,6 +2576,15 @@ body::after {
         display: flex;
         justify-content: center;
         align-items: center;
+        /* Room in middle */
+        order: 2;
+    }
+    
+    .inventory-section {
+        /* Inventory at bottom */
+        order: 3;
+        padding: 15px;
+        margin-top: 10px;
     }
     
     .room-view {
@@ -2433,13 +2621,93 @@ body::after {
         font-size: 5px !important;
     }
     
-    .control-panel {
-        padding: 15px;
-    }
-    
     .bud-generation-stats h3,
     .inventory-section h3 {
+        font-size: 12px;
+    }
+    
+    /* Make BUD Generation title even more prominent */
+    .bud-generation-stats h3 {
+        font-size: 14px;
+    }
+    
+    /* Make BUD stats more compact on mobile */
+    .bud-generation-stats {
+        padding: 10px !important;
+    }
+    
+    .total-bud-display {
+        margin: 10px 0 !important;
+    }
+    
+    .bud-counter {
+        font-size: 16px !important;
+    }
+    
+    .gen-stat-list {
+        gap: 5px !important;
+    }
+    
+    /* Mobile tab improvements */
+    .tab-headers {
+        gap: 2px;
+        margin-bottom: 10px;
+    }
+    
+    .tab-btn {
+        padding: 8px 4px;
+        font-size: 5px;
+        line-height: 1.2;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 32px;
+    }
+    
+    /* Even smaller text for very narrow screens */
+    @media (max-width: 360px) {
+        .tab-btn {
+            font-size: 4px;
+            padding: 6px 2px;
+        }
+    }
+    
+    /* Mobile referral code display - smaller floating box */
+    .referral-code-display {
+        top: 10px;
+        left: 10px;
+        padding: 6px 8px;
+        gap: 2px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .referral-label {
+        font-size: 5px;
+    }
+    
+    .referral-code {
+        font-size: 8px;
+        letter-spacing: 1px;
+    }
+    
+    .copy-code-btn {
         font-size: 10px;
+        padding: 2px 4px;
+    }
+    
+    /* Mobile welcome message - shorter height */
+    .welcome-container {
+        height: 450px;
+        padding: 20px;
+        max-width: 95%;
+    }
+    
+    .welcome-title {
+        font-size: 16px;
+        margin: 0 0 10px 0;
     }
 }
 
@@ -2474,6 +2742,20 @@ body::after {
     }
     
     /* Make Buy $BUD button smaller on mobile */
+    .buy-button {
+        padding: 12px 20px;
+        font-size: 10px;
+    }
+    
+    /* Mobile profile layout - stack vertically */
+    .profile-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .profile-half {
+        width: 100%;
+    }
     .buy-button {
         top: 10px;
         right: 10px;
@@ -2711,30 +2993,6 @@ body::after {
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
-}
-
-.cancel-btn {
-    background: #2a2f38;
-    color: #ff4444;
-    border-color: #ff4444;
-}
-
-.cancel-btn:hover {
-    background: #ff4444;
-    color: #1a1f28;
-    box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
-}
-
-.confirm-btn {
-    background: #2a2f38;
-    color: #00ff41;
-    border-color: #00ff41;
-}
-
-.confirm-btn:hover {
-    background: #00ff41;
-    color: #1a1f28;
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
 }
 
 /* Mobile responsive */
@@ -3138,4 +3396,1237 @@ body::after {
 
 .customize-modal-content::-webkit-scrollbar-thumb:hover {
     background: #00cc33;
+}
+
+/* Joint Upgrade Popups */
+.joint-upgrade-popup,
+.wallet-collection-popup,
+.payment-popup,
+.upgrade-success-popup,
+.upgrade-error-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.upgrade-popup-content,
+.wallet-popup-content,
+.payment-popup-content,
+.success-popup-content,
+.error-popup-content {
+    background: #0f1419;
+    border: 3px solid #00ff41;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+.upgrade-close-btn,
+.wallet-close-btn,
+.payment-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #ff0000;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    width: 25px;
+    height: 25px;
+    line-height: 1;
+    transition: all 0.1s ease;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.upgrade-close-btn:hover,
+.wallet-close-btn:hover,
+.payment-close-btn:hover {
+    color: #ff4444;
+    transform: scale(1.2);
+}
+
+.upgrade-header h3,
+.wallet-header h3,
+.payment-header h3,
+.success-header h3,
+.error-header h3 {
+    color: #00ff41;
+    font-size: 14px;
+    text-align: center;
+    margin: 0 0 20px 0;
+    text-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+/* Upgrade Visual */
+.upgrade-explanation {
+    margin-bottom: 25px;
+}
+
+.upgrade-visual {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.upgrade-from,
+.upgrade-to {
+    text-align: center;
+    flex: 1;
+}
+
+.upgrade-item-img {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+    border: 2px solid #2a2f38;
+    border-radius: 4px;
+    background: #1a1f28;
+    padding: 5px;
+}
+
+.upgrade-item-name {
+    color: #00ff41;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.upgrade-item-rate {
+    color: #ffaa00;
+    font-size: 8px;
+}
+
+.upgrade-arrow {
+    color: #00ff41;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.upgrade-description {
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid #2a2f38;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.upgrade-description p {
+    color: #b0b0b0;
+    font-size: 9px;
+    line-height: 1.6;
+    margin: 0 0 8px 0;
+}
+
+.upgrade-description p:last-child {
+    margin-bottom: 0;
+}
+
+.upgrade-cost {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cost-label {
+    color: #4a9d5f;
+    font-size: 9px;
+    margin-bottom: 5px;
+}
+
+.cost-value {
+    color: #ffaa00;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 170, 0, 0.3);
+}
+
+/* Wallet Collection */
+.wallet-explanation {
+    margin-bottom: 20px;
+}
+
+.wallet-explanation p {
+    color: #b0b0b0;
+    font-size: 9px;
+    line-height: 1.6;
+    margin: 0 0 15px 0;
+}
+
+.wallet-input-section {
+    margin-bottom: 20px;
+}
+
+.wallet-input-section label {
+    display: block;
+    font-size: 8px;
+    color: #00ff41;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.wallet-address-input {
+    width: 100%;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    outline: none;
+    transition: all 0.3s;
+    box-sizing: border-box;
+    border-radius: 0; /* Remove rounded corners for pixel art style */
+}
+
+.wallet-address-input:focus {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+}
+
+.wallet-address-input::placeholder {
+    color: rgba(136, 204, 153, 0.5);
+    font-size: 8px;
+}
+
+.wallet-address-input.error {
+    border-color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+}
+
+.wallet-validation-message {
+    margin-top: 10px;
+    font-size: 8px;
+    padding: 8px 12px;
+    border: 2px solid transparent;
+    font-family: 'Press Start 2P', cursive;
+    text-align: center;
+}
+
+.wallet-validation-message.error {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    border-color: #ff4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+}
+
+.wallet-validation-message.success {
+    color: #00ff41;
+    background: rgba(0, 255, 65, 0.1);
+    border-color: #00ff41;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+/* Payment Instructions */
+.payment-instructions {
+    margin-bottom: 25px;
+}
+
+.payment-instructions p {
+    color: #b0b0b0;
+    font-size: 9px;
+    line-height: 1.6;
+    margin: 0 0 15px 0;
+}
+
+.destination-wallet,
+.payment-amount {
+    margin-bottom: 15px;
+}
+
+.destination-wallet label,
+.payment-amount label {
+    display: block;
+    color: #00ff41;
+    font-size: 9px;
+    margin-bottom: 8px;
+}
+
+.wallet-address-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wallet-address-display span {
+    background: #1a1f28;
+    border: 2px solid #2a2f38;
+    border-radius: 4px;
+    padding: 8px;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    flex: 1;
+    word-break: break-all;
+}
+
+.copy-address-btn {
+    background: #0f1419;
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.copy-address-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+.amount-display {
+    background: #1a1f28;
+    border: 2px solid #ffaa00;
+    border-radius: 4px;
+    padding: 10px;
+    color: #ffaa00;
+    font-size: 12px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.payment-warning {
+    background: rgba(255, 170, 0, 0.1);
+    border: 1px solid #ffaa00;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 15px;
+}
+
+.payment-warning p {
+    color: #ffaa00;
+    font-size: 8px;
+    margin: 0 0 8px 0;
+}
+
+.user-wallet-display {
+    background: #1a1f28;
+    border: 1px solid #2a2f38;
+    border-radius: 4px;
+    padding: 8px;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    word-break: break-all;
+}
+
+.payment-status {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid #2a2f38;
+    border-radius: 4px;
+}
+
+.status-message {
+    color: #00ff41;
+    font-size: 9px;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.status-message.waiting {
+    color: #ff9500; /* Orange color for waiting state */
+}
+
+.status-message.error {
+    color: #ff4444; /* Red color for error state */
+}
+
+.status-indicator {
+    font-size: 20px;
+}
+
+/* Action Buttons */
+.upgrade-actions,
+.wallet-actions,
+.payment-actions,
+.success-actions,
+.error-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* All Confirm/Action Buttons - Unified Green Styling (matches shop confirm buttons) */
+.upgrade-now-btn,
+.wallet-submit-btn,
+.check-payment-btn,
+.success-ok-btn,
+.confirm-btn {
+    background: #2a2f38;
+    color: #00ff41;
+    border: 2px solid #00ff41;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.upgrade-now-btn:hover,
+.wallet-submit-btn:hover,
+.check-payment-btn:hover,
+.success-ok-btn:hover,
+.confirm-btn:hover {
+    background: #00ff41;
+    color: #1a1f28;
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+}
+
+/* All Cancel Buttons - Unified Red Styling (matches shop cancel buttons) */
+.cancel-btn,
+.upgrade-cancel-btn,
+.wallet-cancel-btn,
+.payment-cancel-btn,
+.error-cancel-btn,
+.error-ok-btn {
+    background: #2a2f38;
+    color: #ff4444;
+    border: 2px solid #ff4444;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover,
+.upgrade-cancel-btn:hover,
+.wallet-cancel-btn:hover,
+.payment-cancel-btn:hover,
+.error-cancel-btn:hover,
+.error-ok-btn:hover {
+    background: #ff4444;
+    color: #1a1f28;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+}
+
+.check-payment-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Success/Error Popups */
+.success-popup-content {
+    border-color: #00ff41;
+}
+
+.error-popup-content {
+    border-color: #ff4444;
+}
+
+.success-header h3 {
+    color: #00ff41;
+}
+
+.error-header h3 {
+    color: #ff4444;
+}
+
+.success-message,
+.error-message {
+    margin-bottom: 25px;
+}
+
+.success-message p,
+.error-message p {
+    color: #b0b0b0;
+    font-size: 9px;
+    line-height: 1.6;
+    margin: 0 0 10px 0;
+}
+
+.success-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid #2a2f38;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.success-item-img {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #2a2f38;
+    border-radius: 4px;
+    background: #1a1f28;
+    padding: 5px;
+}
+
+.success-item-details {
+    flex: 1;
+}
+
+.success-item-name {
+    color: #00ff41;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.success-item-rate {
+    color: #ffaa00;
+    font-size: 8px;
+}
+
+/* Global Notification System */
+.error-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(26, 31, 40, 0.95);
+    border: 2px solid #ff4444;
+    color: #ff4444;
+    padding: 15px 20px;
+    font-size: 10px;
+    max-width: 300px;
+    z-index: 10001;
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+    animation: notificationSlideIn 0.3s ease-out;
+    border-radius: 4px;
+}
+
+.error-notification.auto-dismiss {
+    animation: notificationSlideIn 0.3s ease-out, notificationSlideOut 0.3s ease-in 2.7s;
+}
+
+/* Orange notification variant */
+.error-notification.orange {
+    border-color: #ff8800;
+    color: #ff8800;
+    box-shadow: 0 0 20px rgba(255, 136, 0, 0.5);
+}
+
+/* Green notification variant */
+.error-notification.green {
+    border-color: #00ff41;
+    color: #00ff41;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+}
+
+/* Blue notification variant */
+.error-notification.blue {
+    border-color: #4488ff;
+    color: #4488ff;
+    box-shadow: 0 0 20px rgba(68, 136, 255, 0.5);
+}
+
+.custom-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.custom-dialog-content {
+    background: rgba(26, 31, 40, 0.95);
+    border: 3px solid #00ff41;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+    border-radius: 4px;
+    color: #00ff41;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.custom-dialog-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.custom-dialog button {
+    background: rgba(0, 255, 65, 0.1);
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    padding: 10px 20px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.custom-dialog button:hover {
+    background: rgba(0, 255, 65, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    transform: scale(1.05);
+}
+
+.custom-dialog button.cancel {
+    background: #2a2f38;
+    color: #ff4444;
+    border-color: #ff4444;
+}
+
+.custom-dialog button.cancel:hover {
+    background: #ff4444;
+    color: #1a1f28;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+}
+
+@keyframes notificationSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes notificationSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Casino Tab Styles */
+.casino-container {
+    padding: 10px;
+    color: #00ff41;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    position: relative;
+    min-height: 200px;
+    background-image: url('../assets/sprites/casino.png');
+    background-size: 400px auto;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.casino-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 20, 25, 0.6);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.casino-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+.cali-flip-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00ff41;
+    font-family: 'Press Start 2P', cursive;
+    letter-spacing: 4px;
+    margin-bottom: 1px;
+}
+
+.casino-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1px;
+}
+
+.casino-image {
+    max-width: 200px;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    opacity: 0.4;
+}
+
+.casino-actions {
+    margin-top: 170px;
+}
+
+.coming-soon-btn {
+    background: #1a1f28;
+    border: 2px solid #666;
+    color: #666;
+    padding: 10px 20px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    cursor: not-allowed;
+    opacity: 0.5;
+    text-transform: uppercase;
+}
+
+/* Remove old casino styles that are no longer needed */
+.casino-header,
+.casino-games,
+.casino-game,
+.game-header,
+.game-controls,
+.bet-amount,
+.bet-input,
+.flip-buttons,
+.number-buttons,
+.flip-btn,
+.number-btn,
+.game-result,
+.result-win,
+.result-lose {
+    display: none;
+}
+
+/* Welcome Tutorial Popup */
+.welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 20, 25, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+}
+
+.welcome-container {
+    background: #0f1419;
+    border: 3px solid #00ff41;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 600px;
+    width: 90%;
+    height: 800px;
+    overflow-y: auto;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+}
+
+/* Green scrollbars for welcome container and tutorial content */
+.welcome-container::-webkit-scrollbar,
+.tutorial-content::-webkit-scrollbar,
+.tutorial-content.upgrade-style::-webkit-scrollbar {
+    width: 12px;
+}
+
+.welcome-container::-webkit-scrollbar-track,
+.tutorial-content::-webkit-scrollbar-track,
+.tutorial-content.upgrade-style::-webkit-scrollbar-track {
+    background: #0f1419;
+    border: 1px solid #00ff41;
+    border-radius: 0;
+}
+
+.welcome-container::-webkit-scrollbar-thumb,
+.tutorial-content::-webkit-scrollbar-thumb,
+.tutorial-content.upgrade-style::-webkit-scrollbar-thumb {
+    background: #00ff41;
+    border: 1px solid #0f1419;
+    border-radius: 0;
+    box-shadow: inset 0 0 3px rgba(0, 255, 65, 0.3);
+}
+
+.welcome-container::-webkit-scrollbar-thumb:hover,
+.tutorial-content::-webkit-scrollbar-thumb:hover,
+.tutorial-content.upgrade-style::-webkit-scrollbar-thumb:hover {
+    background: #4aff6b;
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+/* Firefox scrollbar support */
+.welcome-container,
+.tutorial-content,
+.tutorial-content.upgrade-style {
+    scrollbar-width: thin;
+    scrollbar-color: #00ff41 #0f1419;
+}
+
+.welcome-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 28px;
+    color: #00ff41;
+    margin: 0 0 30px 0;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+/* Mobile responsive sizing for welcome title */
+@media (max-width: 480px) {
+    .welcome-title {
+        font-size: 20px !important;
+        margin: 0 0 20px 0 !important;
+    }
+}
+
+.tutorial-content {
+    margin-bottom: 30px;
+}
+
+.tutorial-step {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid rgba(0, 255, 65, 0.2);
+    border-radius: 8px;
+}
+
+.step-icon {
+    font-size: 32px;
+    margin-right: 20px;
+    min-width: 50px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-icon-img {
+    width: 60px;
+    height: 60px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* Page 2 Upgrade-style Tutorial Styling */
+.tutorial-content.upgrade-style {
+    background: #1a2025;
+    border: 2px solid #00ff41;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.tutorial-content.upgrade-style h2 {
+    color: #00ff41;
+    text-align: center;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    font-size: 16px;
+    border-bottom: 1px solid #00ff41;
+    padding-bottom: 8px;
+}
+
+.tutorial-content.upgrade-style .tutorial-step {
+    background: #0f1419;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 25px;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-height: 180px;
+}
+
+.tutorial-content.upgrade-style .tutorial-step:hover {
+    border-color: #00ff41;
+    background: #1a2025;
+    transform: scale(1.02);
+    transition: all 0.3s ease;
+}
+
+.tutorial-content.upgrade-style .step-icon {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 120px;
+}
+
+/* UNIFIED PAGE 2 TUTORIAL IMAGE SYSTEM */
+/* Base styling for all page 2 tutorial images */
+.tutorial-content.upgrade-style .step-icon-img {
+    display: block !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+    object-fit: contain !important;
+    aspect-ratio: 1/1 !important;
+    border-radius: 0 !important;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Desktop sizes */
+.tutorial-content.upgrade-style .step-icon-img[src*="free-joint"] {
+    width: 120px !important;
+    height: 120px !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.tutorial-content.upgrade-style .step-icon-img[src*="joint-inventory"] {
+    width: 320px !important;
+    height: 320px !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.tutorial-content.upgrade-style .step-icon-img[alt="Interact"] {
+    width: 200px !important;
+    height: 200px !important;
+    border: 3px solid #ff8c00 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Responsive scaling for medium screens */
+@media (max-width: 519px) {
+    .tutorial-content.upgrade-style .step-icon-img[src*="free-joint"] {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    .tutorial-content.upgrade-style .step-icon-img[src*="joint-inventory"] {
+        width: 240px !important;
+        height: 240px !important;
+    }
+    
+    .tutorial-content.upgrade-style .step-icon-img[alt="Interact"] {
+        width: 160px !important;
+        height: 160px !important;
+    }
+}
+
+/* Responsive scaling for small screens */
+@media (max-width: 433px) {
+    .tutorial-content.upgrade-style .step-icon-img[src*="free-joint"] {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .tutorial-content.upgrade-style .step-icon-img[src*="joint-inventory"] {
+        width: 200px !important;
+        height: 200px !important;
+    }
+    
+    .tutorial-content.upgrade-style .step-icon-img[alt="Interact"] {
+        width: 170px !important;
+        height: 170px !important;
+    }
+}
+
+/* Ensure all step icon containers center properly */
+.tutorial-content.upgrade-style .step-icon {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin: 0 auto 25px auto;
+    width: 100%;
+    min-height: 140px;
+}
+
+/* Ensure the step icon container centers the large image */
+.tutorial-content.upgrade-style .tutorial-step:has(.step-icon-img[src*="joint-inventory"]) .step-icon {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 100px !important;
+    text-align: center !important;
+}
+
+/* Make Upgrade to Sprout button larger in tutorial */
+.tutorial-content.upgrade-style .step-icon .joint-upgrade-btn {
+    width: 200px !important;
+    height: 60px !important;
+    font-size: 14px !important;
+    padding: 15px 20px !important;
+    margin: 0 auto !important;
+    display: block !important;
+    text-align: center !important;
+}
+
+/* Center the step-icon container for the upgrade button */
+.tutorial-content.upgrade-style .tutorial-step:has(.joint-upgrade-btn) .step-icon {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 120px !important;
+    text-align: center !important;
+}
+
+/* Make Upgrade button smaller on mobile */
+@media (max-width: 433px) {
+    .tutorial-content.upgrade-style .step-icon .joint-upgrade-btn {
+        width: 140px !important;
+        height: 45px !important;
+        font-size: 11px !important;
+        padding: 10px 14px !important;
+        margin: 0 auto !important;
+        text-align: center !important;
+    }
+}
+
+.tutorial-content.upgrade-style .step-text {
+    width: 100%;
+    text-align: center;
+}
+
+.tutorial-content.upgrade-style .step-text h3 {
+    color: #00ff41;
+    margin-bottom: 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.tutorial-content.upgrade-style .step-text p {
+    color: #ffffff;
+    font-size: 11px;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 0 10px;
+}
+
+/* Smaller text for 400px screens */
+@media (max-width: 400px) {
+    .tutorial-content.upgrade-style .step-text h3 {
+        font-size: 10px;
+    }
+    
+    .tutorial-content.upgrade-style .step-text p {
+        font-size: 8px;
+        line-height: 1.4;
+        max-width: 250px;
+    }
+}
+
+/* Urgent text styling for fast selling warning */
+.urgent-text {
+    color: #ff4444 !important;
+    text-shadow: 0 0 5px #ff4444, 0 0 10px #ff4444, 0 0 15px #ff4444;
+    animation: pulse-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+    from {
+        text-shadow: 0 0 5px #ff4444, 0 0 10px #ff4444, 0 0 15px #ff4444;
+    }
+    to {
+        text-shadow: 0 0 10px #ff4444, 0 0 20px #ff4444, 0 0 30px #ff4444;
+    }
+}
+
+.step-text h3 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 14px;
+    color: #00ff41;
+    margin: 0 0 8px 0;
+}
+
+.step-text p {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    color: #999;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Mobile responsive text sizing for page 1 welcome tutorial */
+@media (max-width: 480px) {
+    .step-text h3 {
+        font-size: 11px !important;
+    }
+    
+    .step-text p {
+        font-size: 8px !important;
+        line-height: 1.3 !important;
+    }
+}
+
+.welcome-buttons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.welcome-btn {
+    background: #0f1419;
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    padding: 15px 30px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    border-radius: 6px;
+    flex: 0 1 auto;
+}
+
+.upgrade-now-btn {
+    background: #0f1419;
+    border: 2px solid #ff8c00;
+    color: #ff8c00;
+}
+
+.welcome-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+    transform: translateY(-2px);
+}
+
+.upgrade-now-btn:hover {
+    background: rgba(255, 140, 0, 0.1);
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.welcome-btn:active {
+    transform: translateY(0);
+}
+
+/* Mobile responsive for welcome buttons */
+@media (max-width: 480px) {
+    .welcome-buttons-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .welcome-btn {
+        width: 100%;
+        max-width: 200px;
+        padding: 12px 20px;
+        font-size: 10px;
+    }
+    
+    /* Make welcome container much shorter on small phones */
+    .welcome-container {
+        height: 400px !important;
+        padding: 15px !important;
+        max-width: 95% !important;
+    }
+    
+    .welcome-title {
+        font-size: 14px !important;
+        margin: 0 0 8px 0 !important;
+    }
+    
+    /* Make page 2 tutorial step container shorter on mobile */
+    .tutorial-content.upgrade-style {
+        max-height: 200px !important;
+        padding: 10px !important;
+    }
+    
+    .tutorial-content.upgrade-style .tutorial-step {
+        padding: 15px !important;
+        margin: 10px 0 !important;
+        min-height: 120px !important;
+    }
+    
+    /* Green scrollbars for tutorial content on mobile */
+    .tutorial-content::-webkit-scrollbar,
+    .tutorial-content.upgrade-style::-webkit-scrollbar {
+        width: 12px;
+    }
+    
+    .tutorial-content::-webkit-scrollbar-track,
+    .tutorial-content.upgrade-style::-webkit-scrollbar-track {
+        background: #0f1419;
+        border: 1px solid #00ff41;
+    }
+    
+    .tutorial-content::-webkit-scrollbar-thumb,
+    .tutorial-content.upgrade-style::-webkit-scrollbar-thumb {
+        background: #00ff41;
+        border: 1px solid #0f1419;
+    }
+    
+    .tutorial-content::-webkit-scrollbar-thumb:hover,
+    .tutorial-content.upgrade-style::-webkit-scrollbar-thumb:hover {
+        background: #4aff6b;
+    }
+}
+
+/* Help Button */
+.help-button {
+    position: fixed;
+    right: 20px;
+    top: 80px;
+    width: 40px;
+    height: 40px;
+    background: #0f1419;
+    border: 2px solid #00ff41;
+    color: #00ff41;
+    border-radius: 50%;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.help-button:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+    transform: scale(1.1);
 }

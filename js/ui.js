@@ -185,7 +185,7 @@ class UISystem {
     
     // Handle game end
     handleGameEnd() {
-        this.showNotification('🎉 Game has ended! Final BUD: ' + 
+        this.showNotification('Game has ended! Final BUD: ' + 
             this.tokenSystem.formatBUD(this.gameState.player.totalBUD + this.gameState.player.accumulatedBUD), 
             'success');
         
@@ -219,7 +219,7 @@ Your Performance:
 Thank you for playing BUD Garden!
         `.trim();
         
-        alert(finalMessage);
+        showErrorNotification(finalMessage);
     }
     
     // Update leaderboard

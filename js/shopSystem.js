@@ -410,7 +410,7 @@ class ShopSystem {
         } else {
             // Error
             console.error('❌ Purchase failed:', result.message);
-            alert(`Purchase failed: ${result.message}`);
+            showErrorNotification(`Purchase failed: ${result.message}`);
             confirmBtn.textContent = originalText;
             confirmBtn.disabled = false;
         }

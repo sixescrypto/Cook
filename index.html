@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>GROW - Weed Plant Growing Game</title>
-    <link rel="stylesheet" href="css/style.css?v=2.6">
+    <link rel="stylesheet" href="css/style.css?v=8.4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="js/main.js?v=10.3"></script>
 </head>
 <body>
     <!-- Invite Code Overlay -->
@@ -55,8 +56,123 @@
         </div>
     </div>
 
+    <!-- Welcome Tutorial Popup -->
+    <div class="welcome-overlay" id="welcomeOverlay" style="display: none;">
+        <div class="welcome-container">
+            <h1 class="welcome-title">Welcome to Grow!</h1>
+            
+            <div class="tutorial-content">
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/sprout.png" alt="Plant" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Plant</h3>
+                        <p>Place plants on your grid to start growing BUD tokens.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/harvest.png" alt="Harvest" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Harvest</h3>
+                        <p>Harvest your BUD to your Solana wallet by clicking the "Harvest" button.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/sprites/refer.png" alt="Refer" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Refer</h3>
+                        <p>Refer your friends to earn 2% of their harvested BUD.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/sprites/cart.png" alt="Shop" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Shop</h3>
+                        <p>Buy & place better plants to grow more BUD, or cosmetic items to enhance your growing experience.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/casinowelcome.png" alt="Casino" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Casino</h3>
+                        <p>Gamble your way to the top, by putting your BUD on the line.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Page 2 Tutorial Content (initially hidden) -->
+            <div class="tutorial-content upgrade-style" id="tutorialPage2" style="display: none;">
+                <h2 style="color: #00ff41; text-align: center; margin-bottom: 20px;">How to get started</h2>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/free-joint.png" alt="Free Joint" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Free Joint</h3>
+                        <p>We've added a complimentary Joint to your inventory.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/joint-inventory.png" alt="Joint Inventory" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Place Joint</h3>
+                        <p>Click on the Joint in your inventory & press "Equip". Select a tile in your room to place it.</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <img src="assets/upgradejoint.png" alt="Interact" class="step-icon-img">
+                    </div>
+                    <div class="step-text">
+                        <h3>Interact</h3>
+                        <p>Click on the items in your room to interact with them. Click on the Joint to interact with it!</p>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-icon">
+                        <button class="joint-upgrade-btn">
+                            Upgrade to Sprout
+                        </button>
+                    </div>
+                    <div class="step-text">
+                        <h3>Upgrade</h3>
+                        <p>When you're ready to start playing, click on the Joint in your room & select <span style="color: #ff8c00;">"Upgrade to Sprout"</span>. - <em class="urgent-text">Be quick as they will sell out fast!</em></p>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <div class="welcome-buttons-container">
+                <button class="welcome-btn" id="welcomeConfirmBtn">NEXT PAGE</button>
+                <button class="welcome-btn upgrade-now-btn" id="upgradeNowBtn" style="display: none;">UPGRADE NOW!</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Buy Button -->
     <a href="#" class="buy-button" id="buyButton">BUY $BUD</a>
+    
+    <!-- Help Button -->
+    <img src="assets/sprites/q.png" alt="Help" class="help-button" id="helpButton" title="Tutorial" style="width: 30px; height: 30px; cursor: pointer;">
     
     <!-- Referral Code Display -->
     <div class="referral-code-display" id="referralCodeDisplay" style="display: none;">
@@ -158,12 +274,14 @@
             <div class="token-stats">
                 <!-- Tab Headers -->
                 <div class="tab-headers">
-                    <button class="tab-btn active" data-tab="stats">TOKEN STATS</button>
+                    <button class="tab-btn active" data-tab="profile">PROFILE</button>
+                    <button class="tab-btn" data-tab="stats">TOKEN STATS</button>
                     <button class="tab-btn" data-tab="calculator">CALCULATOR</button>
+                    <button class="tab-btn" data-tab="casino">CASINO</button>
                 </div>
                 
                 <!-- Token Stats Tab Content -->
-                <div class="tab-content active" id="statsTab">
+                <div class="tab-content" id="statsTab">
                     <div class="token-details">
                         <div class="token-stat">
                             <span class="token-label">Total Supply:</span>
@@ -201,6 +319,53 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Casino Tab Content -->
+                <div class="tab-content" id="casinoTab">
+                    <div class="casino-container">
+                        <div class="cali-flip-title">CALI FLIP</div>
+                        
+                        <div class="casino-actions">
+                            <button class="coming-soon-btn" disabled>COMING SOON</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Tab Content -->
+                <div class="tab-content active" id="profileTab">
+                    <div class="profile-details">
+                        <!-- First Row: Username and Referrals -->
+                        <div class="profile-row">
+                            <div class="profile-stat profile-half">
+                                <span class="profile-label">Username:</span>
+                                <span class="profile-value" id="profileUsername">Loading...</span>
+                            </div>
+                            <div class="profile-stat profile-half">
+                                <span class="profile-label">Referrals:</span>
+                                <span class="profile-value" id="profileReferrals">Loading...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Second Row: Wallet Address (full width) -->
+                        <div class="profile-row">
+                            <div class="profile-stat profile-full">
+                                <span class="profile-label">Wallet Address:</span>
+                                <span class="profile-value" id="profileWallet">Loading...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Third Row: Referral Code (full width) -->
+                        <div class="profile-row">
+                            <div class="profile-referral-section">
+                                <span class="profile-label">Referral Code:</span>
+                                <div class="profile-referral-code">
+                                    <span class="profile-value" id="profileReferralCode">Loading...</span>
+                                    <button class="profile-copy-btn" id="profileCopyBtn">COPY</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="leaderboard">
@@ -210,13 +375,6 @@
                 </div>
             </div>
         </section>
-
-        <!-- Footer -->
-        <footer class="game-footer">
-            <div class="footer-text">
-                BUD GARDEN v1.0 | CONNECTED TO PUMPFUN
-            </div>
-        </footer>
         </div>
 
     <!-- Customization Modal -->
@@ -240,7 +398,7 @@
     <!-- JavaScript files -->
     <script src="js/config.js"></script>
     <script src="js/config/supabase.config.js"></script>
-        <script src="js/supabaseClient.js?v=1.7"></script>
+        <script src="js/supabaseClient.js?v=2.0"></script>
     <script src="js/authSystem.js?v=1.0"></script>
     <script src="js/sounds/soundEffects.js"></script>
     <script src="js/itemsConfig.js"></script>
@@ -249,11 +407,11 @@
     <script src="js/tokenSystem.js?v=1.1"></script>
     <script src="js/gridSystem.js?v=1.3"></script>
     <script src="js/gridAligner.js?v=1.1"></script>
-    <script src="js/plantPlacement.js?v=1.1"></script>
-    <script src="js/inventorySystem.js?v=1.2"></script>
+    <script src="js/plantPlacement.js?v=11.0"></script>
+    <script src="js/inventorySystem.js?v=4.0"></script>
     <script src="js/shopSystem.js?v=3.7"></script>
     <script src="js/roomCustomizer.js?v=1.1"></script>
     <script src="js/ui.js?v=1.3"></script>
-    <script src="js/main.js?v=1.2"></script>
+    <script src="js/main.js?v=8.0"></script>
 </body>
 </html>

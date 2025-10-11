@@ -318,6 +318,63 @@ class SupabaseClient {
         }
     }
 
+    // Add item to inventory on server (with proper upsert logic)
+    async addToInventory(itemId, countToAdd = 1) {
+        if (!this.currentUser) return false;
+
+        try {
+            console.log('🔍 Checking if', itemId, 'exists in inventory...');
+            
+            // First, check if item already exists
+            const { data: existingItem, error: selectError } = await this.supabase
+                .from('player_inventory')
+                .select('count')
+                .eq('player_id', this.currentUser.id)
+                .eq('item_id', itemId)
+                .maybeSingle(); // Use maybeSingle instead of single to avoid error on empty result
+
+            if (selectError) {
+                console.error('❌ Error checking existing item:', selectError);
+                throw selectError;
+            }
+
+            let newCount = countToAdd;
+            if (existingItem) {
+                // Item exists, add to existing count
+                newCount = existingItem.count + countToAdd;
+                console.log('📦 Item exists, updating count from', existingItem.count, 'to', newCount);
+                
+                const { error } = await this.supabase
+                    .from('player_inventory')
+                    .update({ count: newCount })
+                    .eq('player_id', this.currentUser.id)
+                    .eq('item_id', itemId);
+
+                if (error) throw error;
+                console.log('✅ Updated', itemId, 'count to', newCount, 'on server');
+            } else {
+                // Item doesn't exist, insert new
+                console.log('➕ Item doesn\'t exist, creating new with count:', newCount);
+                
+                const { error } = await this.supabase
+                    .from('player_inventory')
+                    .insert({
+                        player_id: this.currentUser.id,
+                        item_id: itemId,
+                        count: newCount
+                    });
+
+                if (error) throw error;
+                console.log('✅ Added new', itemId, 'to server inventory (count:', newCount + ')');
+            }
+
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to add item to inventory:', error);
+            return false;
+        }
+    }
+
     // Purchase item from shop (SERVER-SIDE PRICE VALIDATION)
     // Price is NOT sent from client - server looks it up from database
     async purchaseItem(itemId) {
@@ -491,6 +548,120 @@ class SupabaseClient {
         } catch (error) {
             console.error('❌ Failed to pay referral earnings:', error);
             return { success: false, reason: 'error', error };
+        }
+    }
+
+    // Check if a payment signature has already been used
+    async checkPaymentSignatureUsed(signature) {
+        try {
+            if (!this.supabase) {
+                throw new Error('Supabase not initialized');
+            }
+
+            console.log('🔍 Checking if payment signature has been used:', signature);
+
+            const { data, error } = await this.supabase
+                .rpc('check_payment_signature_used', {
+                    signature_to_check: signature
+                });
+
+            if (error) {
+                console.error('❌ Error checking payment signature:', error);
+                throw error;
+            }
+
+            const isUsed = data === true;
+            console.log(isUsed ? '⚠️ Payment signature already used' : '✅ Payment signature is available');
+            
+            return isUsed;
+
+        } catch (error) {
+            console.error('❌ Failed to check payment signature:', error);
+            throw error;
+        }
+    }
+
+    // Store a verified payment signature to prevent reuse
+    async storeVerifiedPayment(paymentDetails, usedFor = 'upgrade', itemPurchased = null) {
+        try {
+            if (!this.supabase || !this.currentUser) {
+                throw new Error('Supabase not initialized or user not authenticated');
+            }
+
+            console.log('💾 Storing verified payment signature:', {
+                signature: paymentDetails.signature,
+                usedFor,
+                itemPurchased
+            });
+
+            const { data, error } = await this.supabase
+                .rpc('store_verified_payment', {
+                    p_signature: paymentDetails.signature,
+                    p_player_id: this.currentUser.id,
+                    p_wallet_from: paymentDetails.from,
+                    p_wallet_to: paymentDetails.to,
+                    p_amount_sol: paymentDetails.amount,
+                    p_transaction_time: new Date(paymentDetails.timestamp).toISOString(),
+                    p_item_purchased: itemPurchased,
+                    p_used_for: usedFor
+                });
+
+            if (error) {
+                console.error('❌ Error storing payment signature:', error);
+                throw error;
+            }
+
+            if (!data.success) {
+                console.error('❌ Failed to store payment:', data.message);
+                return { success: false, message: data.message, errorCode: data.error_code };
+            }
+
+            console.log('✅ Payment signature stored successfully');
+            return { success: true, signature: paymentDetails.signature };
+
+        } catch (error) {
+            console.error('❌ Failed to store verified payment:', error);
+            throw error;
+        }
+    }
+
+    // Check if player has already upgraded joint to sprout
+    async checkPlayerJointUpgradeStatus(walletAddress) {
+        try {
+            const { data, error } = await this.supabase
+                .rpc('check_player_joint_upgrade_status', {
+                    player_wallet: walletAddress
+                });
+
+            if (error) {
+                console.error('❌ Failed to check joint upgrade status:', error);
+                throw error;
+            }
+
+            return data; // Returns boolean
+        } catch (error) {
+            console.error('❌ Failed to check joint upgrade status:', error);
+            throw error;
+        }
+    }
+
+    // Mark player as having upgraded joint to sprout
+    async markPlayerJointUpgraded(walletAddress) {
+        try {
+            const { data, error } = await this.supabase
+                .rpc('mark_player_joint_upgraded', {
+                    player_wallet: walletAddress
+                });
+
+            if (error) {
+                console.error('❌ Failed to mark joint upgrade:', error);
+                throw error;
+            }
+
+            return data; // Returns JSON result
+        } catch (error) {
+            console.error('❌ Failed to mark joint upgrade:', error);
+            throw error;
         }
     }
 }

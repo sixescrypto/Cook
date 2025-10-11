@@ -1,5 +1,33 @@
-// Main Game Initialization
+// Main Game Initialization - Version 10.3
 console.log('🔵 main.js loaded - before DOMContentLoaded');
+
+// Global touch handling for mobile grid tile placement
+let touchStartTime = 0;
+
+document.addEventListener('touchstart', function(e) {
+    touchStartTime = Date.now();
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+    const touchDuration = Date.now() - touchStartTime;
+    
+    // Check if this is a grid tile and placement is enabled
+    if (e.target.classList.contains('grid-tile') && window.plantPlacement && window.plantPlacement.placementEnabled) {
+        const tileElement = e.target;
+        const gridSystem = window.gridSystem;
+        
+        if (gridSystem && gridSystem.tiles) {
+            const tileData = gridSystem.tiles.find(tile => tile.element === tileElement);
+            if (tileData && touchDuration < 500) {
+                try {
+                    window.plantPlacement.placePlant(tileData.row, tileData.col);
+                } catch (error) {
+                    console.error('❌ Manual placement error:', error);
+                }
+            }
+        }
+    }
+}, { passive: false });
 
 // Function to calculate and claim offline BUD earnings
 async function claimOfflineBUD() {
@@ -280,12 +308,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 inventorySystem.items = serverInventory.map(item => {
                     // Use item details from database JOIN
                     if (item.items) {
+                        // Get generation rate from server, fallback to config if needed
+                        let generationRate = item.items.generation_rate;
+                        
+                        // If server doesn't have generation rate or it's 0, use config as fallback
+                        if (!generationRate || generationRate === 0) {
+                            const itemConfig = ITEMS_CONFIG.find(config => config.id === item.item_id);
+                            if (itemConfig && itemConfig.rewardRate) {
+                                // Extract number from "1000 BUD/min" format
+                                const match = itemConfig.rewardRate.match(/(\d+)/);
+                                generationRate = match ? parseInt(match[1]) : 0;
+                            }
+                        }
+                        
                         return {
                             id: item.item_id,
                             name: item.items.name,
                             description: item.items.description,
                             image: item.items.image_url, // Use image_url from database
-                            rewardRate: `${item.items.generation_rate} BUD/min`,
+                            rewardRate: `${generationRate} BUD/min`,
                             count: item.count || 1
                         };
                     } else {
@@ -383,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             inventorySystem.init();
             
             // Show error message to user
-            alert('Unable to connect to server. Please check your internet connection and refresh the page.');
+            showErrorNotification('Unable to connect to server. Please check your internet connection and refresh the page.');
         }
     } else {
         console.log('⚠️ Server unavailable - Cannot load game');
@@ -394,7 +435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         inventorySystem.init();
         
         // Show error message to user
-        alert('Server is unavailable. Please refresh the page to try again.');
+                showErrorNotification('Server is unavailable. Please try again later.');
     }
     
     // Note: localStorage is ONLY used as offline cache (write-only)
@@ -548,7 +589,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return gameState.getStats();
             },
             reset: () => {
-                if (confirm('Reset game? This will delete all progress!')) {
+                if (this.showConfirmDialog('Reset game? This will delete all progress!')) {
                     gameState.reset();
                 }
             }
@@ -558,7 +599,157 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('✅ GROW initialized successfully!');
     console.log('💡 Access debug commands via: BUDGarden.debug');
     console.log('🌿 Happy growing!');
+    
+    // Load profile data since Profile tab is the default active tab
+    setTimeout(() => {
+        loadProfileData();
+    }, 500); // Small delay to ensure DOM is fully ready
+    
+    // Initialize welcome popup
+    initializeWelcomePopup();
 });
+
+// Welcome popup functionality
+function initializeWelcomePopup() {
+    try {
+        const welcomeOverlay = document.getElementById('welcomeOverlay');
+        const welcomeConfirmBtn = document.getElementById('welcomeConfirmBtn');
+        const upgradeNowBtn = document.getElementById('upgradeNowBtn');
+        const helpButton = document.getElementById('helpButton');
+        
+        if (!welcomeOverlay || !welcomeConfirmBtn || !upgradeNowBtn || !helpButton) {
+            console.warn('Welcome popup elements not found, skipping initialization');
+            return;
+        }
+        
+        // Check if user has seen the welcome popup before
+        const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+        
+        // Show welcome popup for new users
+        if (!hasSeenWelcome) {
+            setTimeout(() => {
+                welcomeOverlay.style.display = 'flex';
+            }, 2000); // Increased delay to ensure everything is loaded
+        }
+        
+        // Handle tutorial page navigation
+        let currentPage = 1;
+        const tutorialPage1 = document.querySelector('.tutorial-content:not(#tutorialPage2)');
+        const tutorialPage2 = document.getElementById('tutorialPage2');
+        
+        welcomeConfirmBtn.addEventListener('click', () => {
+            if (currentPage === 1) {
+                // Switch to page 2
+                tutorialPage1.style.display = 'none';
+                tutorialPage2.style.display = 'block';
+                welcomeConfirmBtn.textContent = "LET'S GROW!";
+                upgradeNowBtn.style.display = 'block';
+                currentPage = 2;
+            } else {
+                // Close welcome popup
+                welcomeOverlay.style.display = 'none';
+                localStorage.setItem('hasSeenWelcome', 'true');
+                
+                // Reset for next time
+                tutorialPage1.style.display = 'block';
+                tutorialPage2.style.display = 'none';
+                welcomeConfirmBtn.textContent = "NEXT PAGE";
+                upgradeNowBtn.style.display = 'none';
+                currentPage = 1;
+            }
+        });
+        
+        // Handle upgrade now button click
+        upgradeNowBtn.addEventListener('click', async () => {
+            console.log('🚀 Welcome Tutorial Upgrade Now button clicked!');
+            
+            // Check if user has already upgraded first
+            try {
+                const currentWalletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet');
+                if (currentWalletAddress && window.supabaseClient) {
+                    const hasUpgraded = await window.supabaseClient.checkPlayerJointUpgradeStatus(currentWalletAddress);
+                    if (hasUpgraded) {
+                        showErrorNotification('You have already upgraded a joint to sprout. Only one upgrade is allowed per player.');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Failed to check upgrade status:', error);
+                showErrorNotification('Error checking upgrade status. Please try again.');
+                return;
+            }
+            
+            // Close welcome popup first
+            welcomeOverlay.style.display = 'none';
+            localStorage.setItem('hasSeenWelcome', 'true');
+            
+            // Reset welcome popup for next time
+            tutorialPage1.style.display = 'block';
+            tutorialPage2.style.display = 'none';
+            welcomeConfirmBtn.textContent = "NEXT PAGE";
+            upgradeNowBtn.style.display = 'none';
+            currentPage = 1;
+            
+            // Find the first joint in the grid to get position, or use default position
+            const joints = document.querySelectorAll('.grid-item.joint');
+            let row = 2, col = 2; // Default center position
+            
+            if (joints.length > 0) {
+                // Use the first joint's position if available
+                const firstJoint = joints[0];
+                row = parseInt(firstJoint.dataset.row);
+                col = parseInt(firstJoint.dataset.col);
+                console.log(`📍 Using joint position: (${row}, ${col})`);
+            } else {
+                console.log(`📍 No joints found, using default position: (${row}, ${col})`);
+            }
+            
+            // Always trigger the upgrade popup using the plant placement system
+            if (window.plantPlacement && typeof window.plantPlacement.showJointUpgradePopup === 'function') {
+                console.log('✅ Plant placement system found, showing upgrade popup');
+                try {
+                    window.plantPlacement.showJointUpgradePopup(row, col);
+                } catch (error) {
+                    console.error('❌ Error showing joint upgrade popup:', error);
+                }
+            } else {
+                console.error('❌ Plant placement system or showJointUpgradePopup method not available');
+                console.log('Available window.plantPlacement:', window.plantPlacement);
+            }
+        });
+        
+        // Handle help button click (reopen tutorial)
+        helpButton.addEventListener('click', () => {
+            welcomeOverlay.style.display = 'flex';
+            // Ensure we're on page 1 when reopening tutorial
+            tutorialPage1.style.display = 'block';
+            tutorialPage2.style.display = 'none';
+            welcomeConfirmBtn.textContent = "NEXT PAGE";
+            upgradeNowBtn.style.display = 'none';
+            currentPage = 1;
+        });
+        
+        // Close popup when clicking outside
+        welcomeOverlay.addEventListener('click', (e) => {
+            if (e.target === welcomeOverlay) {
+                welcomeOverlay.style.display = 'none';
+                localStorage.setItem('hasSeenWelcome', 'true');
+            }
+        });
+        
+        // Close popup with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && welcomeOverlay.style.display === 'flex') {
+                welcomeOverlay.style.display = 'none';
+                localStorage.setItem('hasSeenWelcome', 'true');
+            }
+        });
+        
+        console.log('Welcome popup initialized successfully');
+    } catch (error) {
+        console.error('Error initializing welcome popup:', error);
+    }
+}
 
 // Setup tab switching functionality
 function setupTabs() {
@@ -581,6 +772,14 @@ function setupTabs() {
                 document.getElementById('statsTab').classList.add('active');
             } else if (targetTab === 'calculator') {
                 document.getElementById('calculatorTab').classList.add('active');
+            } else if (targetTab === 'casino') {
+                document.getElementById('casinoTab').classList.add('active');
+                // Initialize casino games when tab is activated
+                initializeCasino();
+            } else if (targetTab === 'profile') {
+                document.getElementById('profileTab').classList.add('active');
+                // Load profile data when tab is activated
+                loadProfileData();
             }
         });
     });
@@ -709,4 +908,261 @@ async function loadReferralCodeDisplay() {
     } else {
         console.log('ℹ️ No referral code found for player');
     }
+}
+
+// Load and display profile data
+async function loadProfileData() {
+    console.log('📋 Loading profile data...');
+    
+    const usernameElement = document.getElementById('profileUsername');
+    const walletElement = document.getElementById('profileWallet');
+    const referralsElement = document.getElementById('profileReferrals');
+    const referralCodeElement = document.getElementById('profileReferralCode');
+    const copyBtn = document.getElementById('profileCopyBtn');
+    
+    // Get basic info from localStorage
+    const username = localStorage.getItem('herbone_username') || 'Unknown';
+    const walletAddress = localStorage.getItem('walletAddress') || localStorage.getItem('herbone_wallet') || 'Not connected';
+    
+    // Update UI immediately with available data
+    usernameElement.textContent = username;
+    walletElement.textContent = walletAddress;
+    
+    // Try to get referral code
+    let referralCode = localStorage.getItem('herbone_referral_code') || 'Loading...';
+    referralCodeElement.textContent = referralCode;
+    
+    // Get referrals count and other data from database
+    if (window.supabaseClient && username !== 'Unknown') {
+        try {
+            // Get referral code if not cached
+            if (referralCode === 'Loading...') {
+                const { data: codeData, error: codeError } = await window.supabaseClient.supabase
+                    .from('invite_codes')
+                    .select('code')
+                    .eq('owner_username', username)
+                    .single();
+                
+                if (codeData && codeData.code) {
+                    referralCode = codeData.code;
+                    localStorage.setItem('herbone_referral_code', referralCode);
+                    referralCodeElement.textContent = referralCode;
+                } else {
+                    referralCodeElement.textContent = 'None';
+                }
+            }
+            
+            // Get referrals count
+            const { data: referralsData, error: referralsError } = await window.supabaseClient.supabase
+                .from('invite_codes')
+                .select('times_used')
+                .eq('owner_username', username)
+                .single();
+            
+            if (referralsData) {
+                referralsElement.textContent = referralsData.times_used || 0;
+            } else {
+                referralsElement.textContent = '0';
+            }
+            
+            console.log('✅ Profile data loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load profile data:', error);
+            referralsElement.textContent = '0';
+            if (referralCode === 'Loading...') {
+                referralCodeElement.textContent = 'None';
+            }
+        }
+    } else {
+        // No supabase or username - use fallback values
+        referralsElement.textContent = '0';
+        if (referralCode === 'Loading...') {
+            referralCodeElement.textContent = 'None';
+        }
+    }
+    
+    // Setup copy button functionality
+    if (copyBtn && referralCodeElement) {
+        // Remove any existing event listeners
+        copyBtn.replaceWith(copyBtn.cloneNode(true));
+        const newCopyBtn = document.getElementById('profileCopyBtn');
+        
+        newCopyBtn.addEventListener('click', async () => {
+            const codeText = referralCodeElement.textContent;
+            
+            // Don't copy if no valid code
+            if (!codeText || codeText === 'Loading...' || codeText === 'None') {
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(codeText);
+                newCopyBtn.textContent = '✓';
+                newCopyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    newCopyBtn.textContent = 'COPY';
+                    newCopyBtn.classList.remove('copied');
+                }, 2000);
+                
+                console.log('✅ Referral code copied:', codeText);
+            } catch (error) {
+                console.error('❌ Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = codeText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                newCopyBtn.textContent = '✓';
+                newCopyBtn.classList.add('copied');
+                setTimeout(() => {
+                    newCopyBtn.textContent = 'COPY';
+                    newCopyBtn.classList.remove('copied');
+                }, 2000);
+            }
+        });
+    }
+}
+
+// Global error notification system (replaces alert popups)
+function showErrorNotification(message, color = 'red') {
+    // Remove any existing error notifications
+    const existingError = document.querySelector('.error-notification');
+    if (existingError) {
+        existingError.remove();
+    }
+
+    // Set icon and style based on color
+    let icon = '';
+    let className = 'error-notification';
+    
+    if (color === 'orange') {
+        icon = '';
+        className = 'error-notification orange';
+    } else if (color === 'green') {
+        icon = '';
+        className = 'error-notification green';
+    } else if (color === 'blue') {
+        icon = '';
+        className = 'error-notification blue';
+    }
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = className;
+    errorDiv.innerHTML = `
+        <div class="error-notification-content">
+            <span class="error-icon">${icon}</span>
+            <span class="error-text">${message}</span>
+        </div>
+    `;
+
+    // Add to body
+    document.body.appendChild(errorDiv);
+
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (errorDiv.parentElement) {
+            errorDiv.remove();
+        }
+    }, 10000);
+}
+
+// Global confirmation dialog (replaces confirm popups)
+function showConfirmDialog(message) {
+    return new Promise((resolve) => {
+        const confirmDiv = document.createElement('div');
+        confirmDiv.className = 'upgrade-error-popup';
+        confirmDiv.innerHTML = `
+            <div class="error-popup-content">
+                <div class="error-header">
+                    <h3>⚠️ Confirm Action</h3>
+                </div>
+                <div class="error-message">
+                    <p>${message}</p>
+                </div>
+                <div class="error-actions">
+                    <button class="error-cancel-btn" id="globalCancelBtn">Cancel</button>
+                    <button class="error-ok-btn" id="globalOkBtn">OK</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(confirmDiv);
+
+        const cleanup = () => {
+            confirmDiv.remove();
+        };
+
+        // Cancel button
+        document.getElementById('globalCancelBtn').addEventListener('click', () => {
+            cleanup();
+            resolve(false);
+        });
+
+        // OK button
+        document.getElementById('globalOkBtn').addEventListener('click', () => {
+            cleanup();
+            resolve(true);
+        });
+
+        // ESC key to cancel
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                resolve(false);
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
+}
+
+// Casino functionality
+function initializeCasino() {
+    // Currently just a placeholder - casino games coming soon!
+    console.log('Casino tab initialized - Coming Soon!');
+}
+
+async function updateBudTokensInSupabase(budAmount) {
+    const username = localStorage.getItem('username');
+    if (!username || !window.supabase) {
+        throw new Error('No username or Supabase client');
+    }
+    
+    const { error } = await window.supabase
+        .from('players')
+        .update({ bud_tokens: budAmount })
+        .eq('username', username);
+    
+    if (error) {
+        throw error;
+    }
+}
+
+// Make functions accessible globally
+window.showErrorNotification = showErrorNotification;
+window.showConfirmDialog = showConfirmDialog;
+
+// Mobile touch debugging
+console.log('📱 Touch support check:', 'ontouchstart' in window);
+console.log('📱 User agent:', navigator.userAgent);
+
+// Add global touch test
+if ('ontouchstart' in window) {
+    console.log('📱 Touch events supported');
+    
+    // Simple test - any touch shows alert
+    let touchTestDone = false;
+    document.addEventListener('touchstart', (e) => {
+        if (!touchTestDone) {
+            touchTestDone = true;
+            console.log('📱 First touch detected!');
+        }
+    });
+    
+} else {
+    console.log('❌ Touch events NOT supported');
 }

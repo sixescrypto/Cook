@@ -1,4 +1,4 @@
-// Inventory System - Manages inventory items and equip/unequip functionality
+// Inventory System v4.0 - Manages player inventory and item equipping
 class InventorySystem {
     constructor(plantPlacement) {
         this.plantPlacement = plantPlacement;
@@ -21,8 +21,19 @@ class InventorySystem {
         this.equipPanel = document.getElementById('equipPanel');
         this.equipBtn = document.getElementById('equipBtn');
         
+        // Debug: Check what elements were found
+        console.log('🔍 Element check:', {
+            inventoryGrid: !!this.inventoryGrid,
+            equipPanel: !!this.equipPanel,
+            equipBtn: !!this.equipBtn
+        });
+        
         if (!this.inventoryGrid || !this.equipPanel || !this.equipBtn) {
-            console.error('❌ Inventory elements not found');
+            console.error('❌ Inventory elements not found:', {
+                inventoryGrid: this.inventoryGrid,
+                equipPanel: this.equipPanel,
+                equipBtn: this.equipBtn
+            });
             return;
         }
         
@@ -185,8 +196,23 @@ class InventorySystem {
     
     // Show equip panel with item details
     showEquipPanel(item) {
+        console.log('🎒 Showing equip panel for:', item.name);
+        
         const equipItemPreview = document.getElementById('equipItemPreview');
         const equipItemName = document.getElementById('equipItemName');
+        
+        if (!equipItemPreview || !equipItemName) {
+            console.error('❌ Equip panel elements not found:', {
+                equipItemPreview: !!equipItemPreview,
+                equipItemName: !!equipItemName
+            });
+            return;
+        }
+        
+        if (!this.equipPanel) {
+            console.error('❌ Equip panel not found in showEquipPanel');
+            return;
+        }
         
         equipItemPreview.src = item.image;
         equipItemPreview.alt = item.name;
@@ -203,24 +229,65 @@ class InventorySystem {
         
         // Show panel
         this.equipPanel.style.display = 'block';
+        console.log('✅ Equip panel should now be visible');
+        
+        // Update upgrade button if it exists
+        this.updateUpgradeButton(item);
+    }
+    
+    // Update upgrade button visibility/functionality
+    updateUpgradeButton(item) {
+        // This method can be used to show/hide upgrade options
+        // For now, it's a placeholder to prevent the error
+        console.log('🔧 Upgrade button update for item:', item.name);
     }
     
     // Setup equip button
     setupEquipButton() {
-        this.equipBtn.addEventListener('click', () => {
-            if (!this.selectedItem) return;
+        // Add both click and touch events for better mobile support
+        const handleEquipToggle = () => {
+            console.log('📱 Equip button triggered, selectedItem:', this.selectedItem);
+            console.log('📱 User agent:', navigator.userAgent);
+            
+            if (!this.selectedItem) {
+                console.log('❌ No item selected');
+                showErrorNotification('Please select an item first');
+                return;
+            }
             
             // Toggle equip/unequip
             if (this.equippedItem && this.equippedItem.id === this.selectedItem.id) {
+                console.log('🔧 Unequipping item:', this.selectedItem.id);
                 this.unequipItem();
             } else {
+                console.log('⚡ Equipping item:', this.selectedItem.id);
                 this.equipItem(this.selectedItem);
             }
+        };
+
+        // Remove any existing listeners
+        this.equipBtn.removeEventListener('click', handleEquipToggle);
+        this.equipBtn.removeEventListener('touchend', handleEquipToggle);
+        
+        this.equipBtn.addEventListener('click', handleEquipToggle);
+        this.equipBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('📱 Touch end on equip button');
+            handleEquipToggle();
         });
+        
+        console.log('📱 Equip button listeners setup complete');
     }
     
     // Equip an item
     equipItem(item) {
+        console.log('🎯 Equipping item:', item.id, item.name);
+        // Add mobile debugging alert
+        if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+            console.log('📱 Mobile device detected, enabling touch debugging');
+        }
+        
         this.equippedItem = item;
         this.placementMode = true;
         
@@ -230,9 +297,18 @@ class InventorySystem {
         
         // Update plant placement system with new image and item ID
         this.plantPlacement.plantImage = item.image;
+        console.log('📱 Enabling placement for:', item.id, 'image:', item.image);
         this.plantPlacement.enablePlacement(item.id);
         
         console.log(`✅ Equipped: ${item.name} (${item.count} remaining) - Placement mode ACTIVE`);
+        console.log('📱 PlacementEnabled after equip:', this.plantPlacement.placementEnabled);
+        
+        // Add visible feedback for mobile testing
+        if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+            const message = `${item.name} equipped! Touch a room tile to place!`;
+            console.log(message);
+            showErrorNotification(message, 'orange');
+        }
     }
     
     // Consume one item (called when placing)

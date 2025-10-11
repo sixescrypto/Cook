@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, touch-action=manipulation">
+    <title>Mobile Touch Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1f28;
+            color: #00ff41;
+        }
+        .test-box {
+            width: 200px;
+            height: 100px;
+            background: #333;
+            border: 2px solid #00ff41;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .test-box.touched {
+            background: #00ff41;
+            color: #000;
+        }
+        .log {
+            background: #000;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #00ff41;
+            max-height: 200px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Mobile Touch Test</h1>
+    <p>This tests if touch events work on your mobile device.</p>
+    
+    <div class="test-box" id="testBox1">Tap Me!</div>
+    <div class="test-box" id="testBox2">Touch Me!</div>
+    
+    <button id="equipBtn" style="padding: 10px; margin: 10px;">EQUIP TEST</button>
+    
+    <div class="log" id="log">
+        <p>Touch log will appear here...</p>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        const testBox1 = document.getElementById('testBox1');
+        const testBox2 = document.getElementById('testBox2');
+        const equipBtn = document.getElementById('equipBtn');
+        
+        function addLog(message) {
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            log.appendChild(p);
+            log.scrollTop = log.scrollHeight;
+            console.log(message);
+        }
+        
+        addLog('📱 Page loaded');
+        addLog('📱 Touch support: ' + ('ontouchstart' in window));
+        addLog('📱 User agent: ' + navigator.userAgent);
+        
+        // Test basic touch events
+        testBox1.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            addLog('📱 TouchStart on Box 1');
+            testBox1.classList.add('touched');
+        });
+        
+        testBox1.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            addLog('📱 TouchEnd on Box 1');
+            setTimeout(() => {
+                testBox1.classList.remove('touched');
+            }, 500);
+        });
+        
+        // Test click events (should work on mobile too)
+        testBox2.addEventListener('click', (e) => {
+            addLog('🖱️ Click on Box 2');
+            testBox2.classList.add('touched');
+            setTimeout(() => {
+                testBox2.classList.remove('touched');
+            }, 500);
+        });
+        
+        // Test button
+        equipBtn.addEventListener('click', (e) => {
+            addLog('🔘 Button clicked');
+        });
+        
+        equipBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            addLog('📱 Button touched');
+        });
+        
+        // Global touch test
+        document.addEventListener('touchstart', () => {
+            addLog('📱 Global touch detected');
+        }, { once: true });
+        
+    </script>
+</body>
+</html>
